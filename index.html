@@ -21,6 +21,7 @@
         --nook-orange: #f4a261;
         --nook-red: #e76f51;
         --nook-blue: #70c1b3;
+        --nook-blue-dark: #589a8e;
         --nook-pink: #ffc8dd; 
         --nook-pink-dark: #e598b2;
       }
@@ -54,6 +55,8 @@
       /* Other Panels */
       #input-panel { width: 85%; max-width: 350px; z-index: 4000; }
       #breathe-panel { width: 90%; height: 80%; }
+      #customize-panel { width: 85%; max-width: 320px; text-align: center; } /* New! */
+      #encouragement-modal { width: 85%; max-width: 320px; text-align: center; z-index: 5000; } /* New! */
       #lost-tracking-modal { width: 85%; max-width: 320px; text-align: center; }
       #make-card-panel { width: 85%; max-width: 320px; text-align: center; }
 
@@ -77,10 +80,21 @@
       .btn-cancel { background: #d6ccc2; box-shadow: 0 4px 0 #b0a8a0; color: #555; margin-top: 10px; }
       .nook-btn:active { transform: translateY(4px); box-shadow: none; }
 
-      /* Floating UI */
+      /* --- FLOATING UI --- */
       #add-btn { position: absolute; bottom: 30px; right: 30px; z-index: 1000; width: 60px; height: 60px; border-radius: 50%; background: var(--nook-green); color: white; border: 4px solid white; font-size: 30px; font-weight: bold; box-shadow: 0 4px 0 var(--nook-dark-green); cursor: pointer; }
       #breathe-btn { position: absolute; bottom: 30px; left: 30px; z-index: 1000; padding: 15px 20px; border-radius: 30px; background: var(--nook-pink); color: white; border: 4px solid white; font-size: 16px; font-weight: bold; box-shadow: 0 4px 0 var(--nook-pink-dark); cursor: pointer; }
+      
       #list-btn { position: absolute; top: 30px; right: 30px; z-index: 1000; padding: 10px 15px; border-radius: 20px; background: var(--nook-blue); color: white; border: 3px solid white; font-size: 14px; font-weight: bold; box-shadow: 0 4px 0 #4a9d91; cursor: pointer; }
+      
+      /* NEW: Customize Button (Top Left) */
+      #customize-btn { 
+        position: absolute; top: 30px; left: 30px; z-index: 1000; 
+        padding: 10px 15px; border-radius: 20px; 
+        background: var(--nook-blue); color: white; 
+        border: 3px solid white; font-size: 14px; font-weight: bold; 
+        box-shadow: 0 4px 0 var(--nook-blue-dark); cursor: pointer; 
+      }
+
       #start-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; padding: 15px 30px; background: var(--nook-blue); color: white; font-family: 'Varela Round', sans-serif; font-size: 18px; border: none; border-radius: 20px; box-shadow: 0 5px 0 #4a9d91; cursor: pointer; }
 
       /* List Styles */
@@ -109,7 +123,9 @@
     
     <button id="add-btn" onclick="openModal('input-panel')">+</button>
     <button id="breathe-btn" onclick="openModal('breathe-panel')">🌸 Breathe</button>
-    <button id="list-btn" onclick="render2DList(); openModal('list-panel')">📋 All Tasks</button>
+    <button id="list-btn" onclick="openTaskList()">📋 All Tasks</button>
+    
+    <button id="customize-btn" onclick="openModal('customize-panel')">Customize</button>
 
     <div id="input-panel" class="nook-modal">
       <h3>🍃 New Task 🍃</h3>
@@ -166,6 +182,19 @@
       <div class="breathe-item">Relaxing Breath (4-7-8)</div>
       <div class="breathe-item">Mindful Minute</div>
       <button class="nook-btn btn-cancel" onclick="closeModal('breathe-panel')">Close</button>
+    </div>
+
+    <div id="customize-panel" class="nook-modal">
+      <h3>🎨 Customize</h3>
+      <p style="margin: 30px 0; font-size:18px;">Customization Options<br>Coming Soon...</p>
+      <button class="nook-btn btn-cancel" onclick="closeModal('customize-panel')">Close</button>
+    </div>
+
+    <div id="encouragement-modal" class="nook-modal">
+      <h3 style="color: var(--nook-orange)">Don't Give Up! 🌟</h3>
+      <p style="font-size:16px; margin: 20px 0;">It looks like a task is past its due date.</p>
+      <p style="font-style:italic; color:#777;">"It's not the end of the world! You'll do better next time. Keep moving forward!"</p>
+      <button class="nook-btn" style="background:var(--nook-orange)" onclick="closeModal('encouragement-modal')">I got this!</button>
     </div>
 
     <div id="lost-tracking-modal" class="nook-modal">
@@ -370,6 +399,12 @@
           checkTrackingStatus();
       }
 
+      function openTaskList() {
+          render2DList();
+          openModal('list-panel');
+          checkOverdueTasks(); // Check dates when list opens!
+      }
+
       function checkNewCategory(selectObj) {
         document.getElementById('new-category-input').style.display = (selectObj.value === 'new') ? 'block' : 'none';
       }
@@ -385,6 +420,12 @@
 
       // --- 5. TASK LOGIC ---
       function saveTask() {
+        // LIMIT CHECK
+        if(myTasks.length >= 10) {
+            alert("⚠️ Pockets Full! \n\nYou can only have 10 active tasks.\nPlease finish one before adding more.");
+            return;
+        }
+
         const name = taskNameInput.value;
         if(!name) return;
 
@@ -422,6 +463,7 @@
             catIcon: catIcon,
             urgency: urgencyIcon,
             timeStr: timeDisplay,
+            rawDate: taskDueInput.value, // Save for overdue checks
             arString: `${urgencyIcon} ${catIcon} ${name}\n   ${timeDisplay}`
         };
         
@@ -449,7 +491,6 @@
          const hasTasks = myTasks.length > 0;
          const textContent = myTasks.map(t => t.arString).join("\n\n");
          
-         // Update Bubble Text
          const allBubbles = document.querySelectorAll('.bubble-text');
          allBubbles.forEach(text => {
             if(!hasTasks) {
@@ -459,18 +500,12 @@
             }
          });
 
-         // Update Finish Button Visibility & Clickability
          const finishGroups = document.querySelectorAll('.finish-group');
          finishGroups.forEach(group => {
              group.setAttribute('visible', hasTasks);
-             
-             // Prevent "ghost clicks" by removing clickable class when hidden
              const btn = group.querySelector('.done-btn');
-             if(hasTasks) {
-                 btn.classList.add('clickable');
-             } else {
-                 btn.classList.remove('clickable');
-             }
+             if(hasTasks) btn.classList.add('clickable');
+             else btn.classList.remove('clickable');
          });
       }
 
@@ -495,6 +530,27 @@
             `;
             container.appendChild(div);
         });
+      }
+
+      // --- 6. OVERDUE LOGIC ---
+      function checkOverdueTasks() {
+          const today = new Date();
+          today.setHours(0,0,0,0); // Compare dates only, not times
+          
+          let hasOverdue = false;
+          
+          myTasks.forEach(task => {
+              if(task.rawDate) {
+                  const dueDate = new Date(task.rawDate + 'T00:00'); // Fix Timezone issues
+                  if(dueDate < today) {
+                      hasOverdue = true;
+                  }
+              }
+          });
+
+          if(hasOverdue) {
+              openModal('encouragement-modal');
+          }
       }
     </script>
   </body>
