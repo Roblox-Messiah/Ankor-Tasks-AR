@@ -55,8 +55,8 @@
       /* Other Panels */
       #input-panel { width: 85%; max-width: 350px; z-index: 4000; }
       #breathe-panel { width: 90%; height: 80%; }
-      #customize-panel { width: 85%; max-width: 320px; text-align: center; } /* New! */
-      #encouragement-modal { width: 85%; max-width: 320px; text-align: center; z-index: 5000; } /* New! */
+      #customize-panel { width: 85%; max-width: 320px; text-align: center; } 
+      #encouragement-modal { width: 85%; max-width: 320px; text-align: center; z-index: 5000; } 
       #lost-tracking-modal { width: 85%; max-width: 320px; text-align: center; }
       #make-card-panel { width: 85%; max-width: 320px; text-align: center; }
 
@@ -83,17 +83,8 @@
       /* --- FLOATING UI --- */
       #add-btn { position: absolute; bottom: 30px; right: 30px; z-index: 1000; width: 60px; height: 60px; border-radius: 50%; background: var(--nook-green); color: white; border: 4px solid white; font-size: 30px; font-weight: bold; box-shadow: 0 4px 0 var(--nook-dark-green); cursor: pointer; }
       #breathe-btn { position: absolute; bottom: 30px; left: 30px; z-index: 1000; padding: 15px 20px; border-radius: 30px; background: var(--nook-pink); color: white; border: 4px solid white; font-size: 16px; font-weight: bold; box-shadow: 0 4px 0 var(--nook-pink-dark); cursor: pointer; }
-      
       #list-btn { position: absolute; top: 30px; right: 30px; z-index: 1000; padding: 10px 15px; border-radius: 20px; background: var(--nook-blue); color: white; border: 3px solid white; font-size: 14px; font-weight: bold; box-shadow: 0 4px 0 #4a9d91; cursor: pointer; }
-      
-      /* NEW: Customize Button (Top Left) */
-      #customize-btn { 
-        position: absolute; top: 30px; left: 30px; z-index: 1000; 
-        padding: 10px 15px; border-radius: 20px; 
-        background: var(--nook-blue); color: white; 
-        border: 3px solid white; font-size: 14px; font-weight: bold; 
-        box-shadow: 0 4px 0 var(--nook-blue-dark); cursor: pointer; 
-      }
+      #customize-btn { position: absolute; top: 30px; left: 30px; z-index: 1000; padding: 10px 15px; border-radius: 20px; background: var(--nook-blue); color: white; border: 3px solid white; font-size: 14px; font-weight: bold; box-shadow: 0 4px 0 var(--nook-blue-dark); cursor: pointer; }
 
       #start-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; padding: 15px 30px; background: var(--nook-blue); color: white; font-family: 'Varela Round', sans-serif; font-size: 18px; border: none; border-radius: 20px; box-shadow: 0 5px 0 #4a9d91; cursor: pointer; }
 
@@ -124,7 +115,6 @@
     <button id="add-btn" onclick="openModal('input-panel')">+</button>
     <button id="breathe-btn" onclick="openModal('breathe-panel')">🌸 Breathe</button>
     <button id="list-btn" onclick="openTaskList()">📋 All Tasks</button>
-    
     <button id="customize-btn" onclick="openModal('customize-panel')">Customize</button>
 
     <div id="input-panel" class="nook-modal">
@@ -278,7 +268,8 @@
       let myTasks = []; 
       let selectedUrgency = 'chill'; 
       
-      let trackingTimer = null;
+      let lastSeenTime = 0; 
+      let isTrackingLost = false;
       let visibleCount = 0;
       let cameraActive = false;
       let isModalOpen = false;
@@ -302,7 +293,8 @@
           .then(() => { 
              debugLog.innerText = "Status: Ankor Tasks Active"; 
              cameraActive = true; 
-             checkTrackingStatus(); 
+             lastSeenTime = Date.now();
+             startHeartbeat(); // Start the 1-second checker
           })
           .catch(err => { 
              console.error(err); alert("Camera Error: " + err); 
@@ -310,30 +302,40 @@
           });
       });
 
-      // --- 2. TRACKING LOGIC ---
-      function checkTrackingStatus() {
-         if(!cameraActive) return; 
-         if(isModalOpen) return;   
+      // --- 2. HEARTBEAT TRACKING LOGIC ---
+      function startHeartbeat() {
+          setInterval(() => {
+              if(!cameraActive) return;
+              if(isModalOpen) {
+                  lastSeenTime = Date.now(); // Reset timer if user is in a menu
+                  return; 
+              }
+              
+              const now = Date.now();
+              const timeSinceSeen = (now - lastSeenTime) / 1000;
 
-         if(visibleCount > 0) {
-            if(trackingTimer) {
-                clearTimeout(trackingTimer);
-                trackingTimer = null;
-            }
-            closeModal('lost-tracking-modal');
-         } else {
-            if(!trackingTimer) {
-               trackingTimer = setTimeout(() => {
-                  openModal('lost-tracking-modal'); 
-                  trackingTimer = null; 
-               }, 15000); 
-            }
-         }
+              if(visibleCount > 0) {
+                  lastSeenTime = now;
+                  if(isTrackingLost) {
+                      isTrackingLost = false;
+                      closeModal('lost-tracking-modal');
+                  }
+                  debugLog.innerText = "Status: Tracking Active";
+              } else {
+                  debugLog.innerText = `Status: Searching (${Math.floor(timeSinceSeen)}s)...`;
+                  
+                  if(timeSinceSeen > 15 && !isTrackingLost) {
+                      isTrackingLost = true;
+                      openModal('lost-tracking-modal');
+                  }
+              }
+          }, 1000);
       }
 
       function resetTrackingLogic() {
+         isTrackingLost = false;
+         lastSeenTime = Date.now();
          closeModal('lost-tracking-modal');
-         checkTrackingStatus();
       }
 
       function openMakeCard() {
@@ -345,12 +347,10 @@
       targets.forEach(target => {
          target.addEventListener("targetFound", () => {
             visibleCount++;
-            checkTrackingStatus();
          });
          target.addEventListener("targetLost", () => {
             visibleCount--;
             if(visibleCount < 0) visibleCount = 0;
-            checkTrackingStatus();
          });
       });
 
@@ -390,19 +390,18 @@
       function openModal(id) { 
           document.getElementById(id).style.display = 'block'; 
           isModalOpen = true; 
-          if(trackingTimer) clearTimeout(trackingTimer);
       }
       
       function closeModal(id) { 
           document.getElementById(id).style.display = 'none'; 
-          isModalOpen = false; 
-          checkTrackingStatus();
+          // Delay resetting isModalOpen slightly to prevent instant-trigger of lost tracking
+          setTimeout(() => { isModalOpen = false; lastSeenTime = Date.now(); }, 100);
       }
 
       function openTaskList() {
           render2DList();
           openModal('list-panel');
-          checkOverdueTasks(); // Check dates when list opens!
+          checkOverdueTasks();
       }
 
       function checkNewCategory(selectObj) {
@@ -420,7 +419,6 @@
 
       // --- 5. TASK LOGIC ---
       function saveTask() {
-        // LIMIT CHECK
         if(myTasks.length >= 10) {
             alert("⚠️ Pockets Full! \n\nYou can only have 10 active tasks.\nPlease finish one before adding more.");
             return;
@@ -463,7 +461,7 @@
             catIcon: catIcon,
             urgency: urgencyIcon,
             timeStr: timeDisplay,
-            rawDate: taskDueInput.value, // Save for overdue checks
+            rawDate: taskDueInput.value,
             arString: `${urgencyIcon} ${catIcon} ${name}\n   ${timeDisplay}`
         };
         
@@ -535,13 +533,13 @@
       // --- 6. OVERDUE LOGIC ---
       function checkOverdueTasks() {
           const today = new Date();
-          today.setHours(0,0,0,0); // Compare dates only, not times
+          today.setHours(0,0,0,0);
           
           let hasOverdue = false;
           
           myTasks.forEach(task => {
               if(task.rawDate) {
-                  const dueDate = new Date(task.rawDate + 'T00:00'); // Fix Timezone issues
+                  const dueDate = new Date(task.rawDate + 'T00:00');
                   if(dueDate < today) {
                       hasOverdue = true;
                   }
