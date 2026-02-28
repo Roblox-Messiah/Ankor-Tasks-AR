@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Varela+Round&family=Nunito:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+      /* --- CORE SETUP --- */
+      html, body { 
+        margin: 0; padding: 0; width: 100%; height: 100%; 
+        overflow: hidden; 
+        background-color: transparent !important; 
+        font-family: 'Varela Round', sans-serif; 
+      }
+      canvas { background-color: transparent !important; }
+
+      /* --- PALETTE --- */
+      :root {
+        --glass-bg: rgba(255, 252, 242, 0.85); /* Frosted Cream */
+        --glass-border: rgba(255, 255, 255, 0.6);
+        --nook-green: #8dd7bd;
+        --nook-dark-green: #6ebca4;
+        --nook-brown: #786b59;
+        --nook-orange: #f4a261;
+        --nook-red: #e76f51;
+        --nook-blue: #70c1b3;
+        --nook-blue-dark: #589a8e;
+        --nook-pink: #ffc8dd; 
+        --nook-pink-dark: #e598b2;
+        --nook-gold: #ffd166;
+      }
+
+      /* --- ANIMATIONS --- */
+      @keyframes popIn {
+        0% { opacity: 0; transform: translate(-50%, -40%) scale(0.9); }
+        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
+        100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      }
+      
+      @keyframes slideDown {
+        0% { opacity: 0; transform: translate(-50%, -100%); }
+        100% { opacity: 1; transform: translate(-50%, 0); }
+      }
+
+      @keyframes slideUp {
+        0% { transform: translateY(100%); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+      }
+
+      /* --- MODAL STYLES (Glassmorphism) --- */
+      .nook-modal {
+        display: none; 
+        position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%, -50%); 
+        
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px); 
+        -webkit-backdrop-filter: blur(12px);
+        border: 2px solid var(--glass-border);
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+        
+        color: var(--nook-brown);
+        padding: 25px; 
+        border-radius: 35px; 
+        z-index: 2000;
+        text-align: left;
+        max-height: 85vh; overflow-y: auto;
+        
+        animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      }
+
+      /* --- CELEBRATION MODAL (Top Aligned) --- */
+      #celebration-modal {
+        top: 15%; /* Higher up */
+        bottom: auto;
+        transform: translate(-50%, 0);
+        animation: slideDown 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        
+        width: 85%; max-width: 320px; text-align: center;
+        background: rgba(255, 252, 242, 0.95);
+        border: 4px solid var(--nook-gold);
+        z-index: 5000;
+      }
+
+      /* --- FULL SCREEN LIST --- */
+      #list-panel {
+        width: 100%; height: 100%; 
+        max-height: 100%; max-width: 100%;
+        top: 0; left: 0; 
+        transform: none; 
+        animation: none; 
+        border-radius: 0; 
+        border: none; 
+        z-index: 3000; 
+        padding: 30px;
+        box-sizing: border-box;
+        background: transparent; 
+      }
+
+      #spline-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+      #spline-bg iframe { width: 100%; height: 100%; border: none; }
+
+      /* Other Panels */
+      #input-panel { width: 85%; max-width: 350px; z-index: 4000; }
+      #breathe-panel { width: 90%; height: 80%; }
+      #customize-panel { width: 85%; max-width: 320px; text-align: center; } 
+      #encouragement-modal { width: 85%; max-width: 320px; text-align: center; z-index: 5000; } 
+      #lost-tracking-modal { width: 85%; max-width: 320px; text-align: center; z-index: 6000; }
+      #make-card-panel { width: 85%; max-width: 320px; text-align: center; }
+
+      h3 { 
+        text-align: center; margin-top: 0; 
+        color: var(--nook-green); 
+        font-family: 'Nunito', sans-serif;
+        font-size: 24px; 
+        border-bottom: 2px dashed #e0d6c3; 
+        padding-bottom: 10px; 
+        text-shadow: 1px 1px 0px white;
+      }
+
+      /* --- FORM ELEMENTS --- */
+      label { font-size: 14px; font-weight: bold; display: block; margin-top: 10px; margin-bottom: 5px; color: #887; }
+      
+      input, select {
+        width: 100%; padding: 12px; 
+        border-radius: 20px; 
+        border: 2px solid white;
+        background: rgba(255,255,255,0.6); 
+        color: var(--nook-brown); 
+        font-family: 'Varela Round', sans-serif; font-size: 16px;
+        box-sizing: border-box;
+        box-shadow: inset 2px 2px 5px rgba(0,0,0,0.05);
+        transition: 0.2s;
+      }
+      input:focus { outline: none; border-color: var(--nook-green); background: white; }
+
+      /* Buttons */
+      .nook-btn, .float-btn, #start-btn {
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2) !important;
+      }
+
+      .nook-btn {
+        width: 100%; padding: 14px; margin-top: 15px; border: none; border-radius: 25px;
+        font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 800; letter-spacing: 0.5px;
+        cursor: pointer; color: white; 
+        transition: transform 0.1s, filter 0.2s;
+        text-shadow: 1px 1px 0 rgba(0,0,0,0.1);
+      }
+      .btn-save { background: linear-gradient(135deg, var(--nook-green), var(--nook-dark-green)); }
+      .btn-cancel { background: #d6ccc2; color: #555; margin-top: 10px; }
+      .btn-celeb { background: linear-gradient(135deg, var(--nook-gold), var(--nook-orange)); }
+      .nook-btn:active { transform: scale(0.95); }
+
+      /* --- FLOATING UI --- */
+      .float-btn {
+        position: absolute; z-index: 1000;
+        border-radius: 50px; 
+        border: 3px solid white;
+        color: white; font-weight: bold;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+      .float-btn:active { transform: scale(0.9); }
+
+      #add-btn { 
+        bottom: 30px; right: 30px; width: 65px; height: 65px; 
+        background: var(--nook-green); font-size: 32px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+      }
+      #breathe-btn { 
+        bottom: 30px; left: 30px; padding: 12px 20px; 
+        background: var(--nook-pink); font-size: 16px; 
+      }
+      #list-btn { 
+        top: 30px; right: 30px; padding: 10px 18px; 
+        background: var(--nook-blue); font-size: 14px; 
+      }
+      #customize-btn { 
+        top: 30px; left: 30px; padding: 10px 18px; 
+        background: var(--nook-blue); font-size: 14px; 
+      }
+
+      #start-btn { 
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+        z-index: 9999; padding: 15px 40px; 
+        background: linear-gradient(135deg, var(--nook-blue), var(--nook-blue-dark)); 
+        color: white; font-family: 'Nunito', sans-serif; font-size: 20px; font-weight: bold;
+        border: 4px solid white; border-radius: 30px; 
+        cursor: pointer;
+        animation: popIn 0.5s ease-out;
+      }
+
+      /* List Styles */
+      .task-item { 
+        background: rgba(255,255,255,0.85); 
+        border-radius: 20px; padding: 15px; margin-bottom: 12px; 
+        display: flex; align-items: center; justify-content: space-between; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border: 1px solid white;
+        animation: slideUp 0.3s ease-out;
+        backdrop-filter: blur(5px);
+      }
+      .task-info { text-align: left; }
+      .task-title { font-weight: bold; font-size: 16px; color: #555; }
+      .task-meta { font-size: 12px; color: #999; margin-top: 4px; }
+      .btn-complete { background: var(--nook-green); color: white; border: none; padding: 8px 15px; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: bold; }
+
+      /* Breathe Styles */
+      .breathe-item { 
+        background: #fff0f6; padding: 20px; border-radius: 20px; 
+        margin-bottom: 15px; color: #d680a8; font-weight: bold; 
+        text-align: center; border: 2px solid white; 
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      }
+
+      #debug-log { 
+        position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+        color: rgba(255,255,255,0.9); background: rgba(0,0,0,0.3); 
+        padding: 4px 12px; z-index: 10000; border-radius: 20px;
+        font-family: monospace; font-size: 12px; pointer-events: none; 
+        backdrop-filter: blur(4px);
+      }
+      
+      .urgency-container { display: flex; justify-content: space-between; margin-top: 5px; gap: 8px; }
+      .urgency-option { cursor: pointer; padding: 10px; border-radius: 15px; border: 2px solid transparent; background: rgba(255,255,255,0.5); flex: 1; text-align: center; font-size: 20px; transition: 0.2s; }
+      .urgency-option:hover { transform: translateY(-2px); }
+      .urgency-option.selected-chill { background: #d8f3dc; border-color: #95d5b2; box-shadow: 0 4px 10px rgba(149, 213, 178, 0.3); }
+      .urgency-option.selected-warn { background: #ffedd5; border-color: var(--nook-orange); box-shadow: 0 4px 10px rgba(244, 162, 97, 0.3); }
+      .urgency-option.selected-hot { background: #ffccd5; border-color: var(--nook-red); box-shadow: 0 4px 10px rgba(231, 111, 81, 0.3); }
+      
+      /* FIXED GAP */
+      .date-time-row { display: flex; gap: 20px; } 
+      .date-time-row div { flex: 1; }
+    </style>
+  </head>
+  <body>
+
+    <div id="debug-log">Status: Ready</div>
+    <button id="start-btn">Start Ankor Tasks</button>
+    
+    <button id="add-btn" class="float-btn" onclick="openModal('input-panel')">+</button>
+    <button id="breathe-btn" class="float-btn" onclick="openModal('breathe-panel')">🌸 Breathe</button>
+    <button id="list-btn" class="float-btn" onclick="openTaskList()">📋 All Tasks</button>
+    <button id="customize-btn" class="float-btn" onclick="openModal('customize-panel')">Customize</button>
+
+    <div id="input-panel" class="nook-modal">
+      <h3>🍃 New Task 🍃</h3>
+      <label>What needs doing?</label>
+      <input type="text" id="task-name" placeholder="e.g. Math Quiz...">
+      
+      <label>Class / Category</label>
+      <select id="task-category" onchange="checkNewCategory(this)">
+        <option value="General">General ⚪</option>
+        <option value="Math">Math 🔵</option>
+        <option value="Science">Science 🟢</option>
+        <option value="History">History 🔴</option>
+        <option value="Art">Art 🟡</option>
+        <option value="new">+ Create New...</option>
+      </select>
+      <input type="text" id="new-category-input" placeholder="Enter Category Name" style="display:none; margin-top:5px;">
+
+      <div class="date-time-row">
+        <div><label>Due Date</label><input type="date" id="task-due"></div>
+        <div><label>Time</label><input type="time" id="task-time"></div>
+      </div>
+
+      <label>Urgency</label>
+      <div class="urgency-container">
+        <div class="urgency-option" id="opt-chill" onclick="selectUrgency('chill')">🌿<br><span style="font-size:10px; font-weight:bold; color:#555;">Chill</span></div>
+        <div class="urgency-option" id="opt-warn" onclick="selectUrgency('warn')">⚠️<br><span style="font-size:10px; font-weight:bold; color:#555;">Important</span></div>
+        <div class="urgency-option" id="opt-hot" onclick="selectUrgency('hot')">🔥<br><span style="font-size:10px; font-weight:bold; color:#555;">ASAP</span></div>
+      </div>
+
+      <label>Reminders</label>
+      <select id="task-reminder">
+        <option value="none">No Reminders</option>
+        <option value="daily">Daily until due</option>
+        <option value="morning">Morning of due date</option>
+      </select>
+
+      <button class="nook-btn btn-save" onclick="saveTask()">I'll do it!</button>
+      <button class="nook-btn btn-cancel" onclick="closeModal('input-panel')">Nevermind</button>
+    </div>
+
+    <div id="list-panel" class="nook-modal">
+      <div id="spline-bg">
+         <iframe src='https://my.spline.design/chess-qmWeMBevEpnXEiVl4GtrlbLK/' frameborder='0' width='100%' height='100%'></iframe>
+      </div>
+      <h3 style="font-size: 32px; border:none; margin-bottom: 20px; color: white; text-shadow: 0 2px 5px rgba(0,0,0,0.2);">📋 Your Dashboard</h3>
+      
+      <div id="task-list-container">
+        <p style="text-align:center; color:#555; background:rgba(255,255,255,0.8); padding:20px; border-radius:20px; margin-top:50px; font-size:18px;">No tasks yet! Go add some.</p>
+      </div>
+
+      <button class="nook-btn" style="background:var(--nook-green); display:block; margin: 20px auto; width: auto; padding: 12px 30px;" onclick="openModal('input-panel')">+ Add New Task</button>
+      <button class="nook-btn btn-cancel" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 200px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);" onclick="closeModal('list-panel'); resetTrackingLogic()">Return to Scanner</button>
+    </div>
+
+    <div id="breathe-panel" class="nook-modal">
+      <h3 style="color: var(--nook-pink-dark)">🌸 Breathing Room</h3>
+      <p style="text-align:center; font-style:italic; margin-bottom:20px;">Breathing Exercises Coming Soon...</p>
+      <div class="breathe-item">Box Breathing (4-4-4-4)</div>
+      <div class="breathe-item">Relaxing Breath (4-7-8)</div>
+      <div class="breathe-item">Mindful Minute</div>
+      <button class="nook-btn btn-cancel" onclick="closeModal('breathe-panel')">Close</button>
+    </div>
+
+    <div id="customize-panel" class="nook-modal">
+      <h3>🎨 Customize</h3>
+      <p style="margin: 20px 0; font-size:16px;">Customization Options<br>Coming Soon...</p>
+      <button class="nook-btn btn-cancel" onclick="closeModal('customize-panel')">Close</button>
+    </div>
+
+    <div id="encouragement-modal" class="nook-modal">
+      <h3 style="color: var(--nook-orange)">Don't Give Up! 🌟</h3>
+      <p style="font-size:16px; margin: 20px 0;">It looks like a task is past its due date.</p>
+      <p style="font-style:italic; color:#777; background: rgba(255,255,255,0.5); padding: 15px; border-radius: 15px;">"It's not the end of the world! You'll do better next time. Keep moving forward!"</p>
+      <button class="nook-btn" style="background:var(--nook-orange)" onclick="closeModal('encouragement-modal')">I got this!</button>
+    </div>
+
+    <div id="lost-tracking-modal" class="nook-modal">
+      <h3 style="color: var(--nook-red)">⚠️ Signal Lost...</h3>
+      <p>Ankor Card not detected for 15s.</p>
+      <button class="nook-btn" style="background:var(--nook-blue)" onclick="openMakeCard()">Make a New One</button>
+      <button class="nook-btn" style="background:var(--nook-green)" onclick="openTaskList(); closeModal('lost-tracking-modal')">Go to Task List</button>
+      <button class="nook-btn btn-cancel" onclick="resetTrackingLogic()">Keep Searching</button>
+    </div>
+
+    <div id="make-card-panel" class="nook-modal">
+      <h3>🛠️ Crafting Table</h3>
+      <p style="margin: 30px 0; font-size:18px;">New Card Creator<br>Coming Soon...</p>
+      <button class="nook-btn btn-cancel" onclick="closeModal('make-card-panel'); resetTrackingLogic()">Return</button>
+    </div>
+
+    <div id="celebration-modal" class="nook-modal">
+      <h3 style="color: var(--nook-orange); font-size: 28px;">🎉 Outstanding! 🎉</h3>
+      <p id="celeb-msg" style="font-size:18px; margin: 20px 0; font-weight: bold;">You finished a task!</p>
+      <div style="font-size: 40px; margin-bottom: 20px;">⭐✨🏆✨⭐</div>
+      <button class="nook-btn btn-celeb" onclick="closeCelebration()">Awesome!</button>
+    </div>
+
+    <a-scene 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; missTolerance: 10;" 
+      color-space="sRGB" 
+      renderer="colorManagement: true, physicallyCorrectLights; alpha: true" 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false">
+      
+      <a-assets>
+        <a-asset-item id="ankorModel" src="./ankor_pal.glb"></a-asset-item>
+        <a-asset-item id="celebModel" src="./celebration.glb"></a-asset-item>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
+
+      <a-entity mindar-image-target="targetIndex: 0" class="ar-target">
+        <a-entity class="model-wrapper">
+          <a-gltf-model class="clickable model model-idle" src="#ankorModel" position="0 0 0" scale="0.8 0.8 0.8" rotation="-20 0 0" animation-mixer></a-gltf-model>
+          <a-gltf-model class="clickable model model-celeb" src="#celebModel" position="0 0 0" scale="0.8 0.8 0.8" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-entity class="task-bubble" position="0 2.2 0" visible="false">
+             <a-plane color="#fffcf2" width="2.4" height="2.0" opacity="0.95"></a-plane>
+             <a-text value="Ankor Tasks" color="#8dd7bd" align="center" width="4" position="0 0.8 0.1" font="kelsonsans" wrap-count="20"></a-text>
+             <a-text class="bubble-text" value="No tasks yet!" color="#786b59" align="center" width="2.2" position="0 0.1 0.1" font="kelsonsans" wrap-count="25"></a-text>
+             <a-entity class="finish-group" position="0 -0.6 0.1" visible="false">
+                <a-plane class="clickable done-btn" color="#8dd7bd" width="1.2" height="0.4" opacity="1"></a-plane>
+                <a-text value="Finish Task" align="center" width="3" color="white" position="0 0 0.1" pointer-events="none"></a-text>
+             </a-entity>
+             <a-triangle color="#fffcf2" vertex-a="0 -1.1 0" vertex-b="-0.2 -1.0 0" vertex-c="0.2 -1.0 0"></a-triangle>
+          </a-entity>
+        </a-entity>
+      </a-entity>
+      
+      <a-entity mindar-image-target="targetIndex: 1" class="ar-target">
+        <a-entity class="model-wrapper">
+          <a-gltf-model class="clickable model model-idle" src="#ankorModel" position="0 0 0" scale="0.8 0.8 0.8" rotation="-20 0 0" animation-mixer></a-gltf-model>
+          <a-gltf-model class="clickable model model-celeb" src="#celebModel" position="0 0 0" scale="0.8 0.8 0.8" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-entity class="task-bubble" position="0 2.2 0" visible="false">
+             <a-plane color="#fffcf2" width="2.4" height="2.0" opacity="0.95"></a-plane>
+             <a-text value="Ankor Tasks" color="#8dd7bd" align="center" width="4" position="0 0.8 0.1" font="kelsonsans" wrap-count="20"></a-text>
+             <a-text class="bubble-text" value="No tasks yet!" color="#786b59" align="center" width="2.2" position="0 0.1 0.1" font="kelsonsans" wrap-count="25"></a-text>
+             <a-entity class="finish-group" position="0 -0.6 0.1" visible="false">
+                <a-plane class="clickable done-btn" color="#8dd7bd" width="1.2" height="0.4" opacity="1"></a-plane>
+                <a-text value="Finish Task" align="center" width="3" color="white" position="0 0 0.1" pointer-events="none"></a-text>
+             </a-entity>
+             <a-triangle color="#fffcf2" vertex-a="0 -1.1 0" vertex-b="-0.2 -1.0 0" vertex-c="0.2 -1.0 0"></a-triangle>
+          </a-entity>
+        </a-entity>
+      </a-entity>
+
+      <a-entity mindar-image-target="targetIndex: 2" class="ar-target">
+        <a-entity class="model-wrapper">
+          <a-gltf-model class="clickable model model-idle" src="#ankorModel" position="0 0 0" scale="0.8 0.8 0.8" rotation="-20 0 0" animation-mixer></a-gltf-model>
+          <a-gltf-model class="clickable model model-celeb" src="#celebModel" position="0 0 0" scale="0.8 0.8 0.8" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-entity class="task-bubble" position="0 2.2 0" visible="false">
+             <a-plane color="#fffcf2" width="2.4" height="2.0" opacity="0.95"></a-plane>
+             <a-text value="Ankor Tasks" color="#8dd7bd" align="center" width="4" position="0 0.8 0.1" font="kelsonsans" wrap-count="20"></a-text>
+             <a-text class="bubble-text" value="No tasks yet!" color="#786b59" align="center" width="2.2" position="0 0.1 0.1" font="kelsonsans" wrap-count="25"></a-text>
+             <a-entity class="finish-group" position="0 -0.6 0.1" visible="false">
+                <a-plane class="clickable done-btn" color="#8dd7bd" width="1.2" height="0.4" opacity="1"></a-plane>
+                <a-text value="Finish Task" align="center" width="3" color="white" position="0 0 0.1" pointer-events="none"></a-text>
+             </a-entity>
+             <a-triangle color="#fffcf2" vertex-a="0 -1.1 0" vertex-b="-0.2 -1.0 0" vertex-c="0.2 -1.0 0"></a-triangle>
+          </a-entity>
+        </a-entity>
+      </a-entity>
+
+    </a-scene>
+
+    <script>
+      let myTasks = []; 
+      let selectedUrgency = 'chill'; 
+      
+      // --- CONGRATULATORY MESSAGE POOLS ---
+      const msgChill = [
+          "Nice job twin 😎", 
+          "Easy breezy! 🍃", 
+          "When you finish a task so I lowk congradulate you", 
+          "Light work for my goat",
+          "Like taking candy from a baby (not that you should ever do that, but you totally could, if you really wanted to)"
+      ];
+      const msgWarn = [
+          "Good job type shi", 
+          "Jarvis, get me 1 million high fives", 
+          "Chat, clip that", 
+          "The way you completed that task was so tuff ✅",
+          "If I were a cat, I'd say you're doing great, but it would sound like this: meow"
+      ];
+      const msgHot = [
+          "GET YO SWAG UP RAHHHH YOU DID IT (Imagine Save Me by Chief Keef is playing rn) 🔥", 
+          "That task was no match for you, twinnamon roll ⚡", 
+          "I never doubted you brotato chip 🏆", 
+          "MODs, ban the stress of that task from stream",
+          "ZAMNNNNN you are the goatest of all time!!!"
+      ];
+      
+      let secondsWithoutTarget = 0; 
+      let visibleCount = 0;
+      let cameraActive = false;
+      let isModalOpen = false;
+
+      const debugLog = document.getElementById('debug-log');
+      const startBtn = document.getElementById('start-btn');
+      const scene = document.querySelector('a-scene');
+      
+      const taskNameInput = document.getElementById('task-name');
+      const taskCatInput = document.getElementById('task-category');
+      const newCatInput = document.getElementById('new-category-input');
+      const taskDueInput = document.getElementById('task-due');
+      const taskTimeInput = document.getElementById('task-time');
+
+      // --- 1. START CAMERA ---
+      startBtn.addEventListener('click', () => {
+        debugLog.innerText = "Status: Starting Ankor Tasks...";
+        startBtn.style.display = 'none'; 
+        const mindAR = scene.systems['mindar-image-system'];
+        mindAR.start()
+          .then(() => { 
+             debugLog.innerText = "Status: Ankor Tasks Active"; 
+             cameraActive = true; 
+             setInterval(trackingHeartbeat, 1000);
+          })
+          .catch(err => { 
+             console.error(err); alert("Camera Error: " + err); 
+             startBtn.style.display = 'block'; 
+          });
+      });
+
+      // --- 2. TRACKING LOGIC ---
+      function trackingHeartbeat() {
+          if (!cameraActive) return;
+          if (isModalOpen) {
+              secondsWithoutTarget = 0;
+              debugLog.innerText = "Status: Paused (Menu Open)";
+              return;
+          }
+
+          if (visibleCount > 0) {
+              secondsWithoutTarget = 0;
+              debugLog.innerText = "Status: Target Found!";
+              document.getElementById('lost-tracking-modal').style.display = 'none';
+          } else {
+              secondsWithoutTarget++;
+              debugLog.innerText = `Status: Searching... (${secondsWithoutTarget}s)`;
+              
+              if (secondsWithoutTarget >= 15) {
+                  openModal('lost-tracking-modal');
+                  secondsWithoutTarget = 0; 
+              }
+          }
+      }
+
+      function resetTrackingLogic() {
+         secondsWithoutTarget = 0;
+         closeModal('lost-tracking-modal');
+      }
+
+      function openMakeCard() {
+         closeModal('lost-tracking-modal');
+         openModal('make-card-panel');
+      }
+
+      const targets = document.querySelectorAll('.ar-target');
+      targets.forEach(target => {
+         target.addEventListener("targetFound", () => {
+            visibleCount++;
+         });
+         target.addEventListener("targetLost", () => {
+            visibleCount--;
+            if(visibleCount < 0) visibleCount = 0;
+         });
+      });
+
+      // --- 3. CLICK HANDLERS ---
+      const models = document.querySelectorAll('.model');
+      models.forEach(model => {
+        model.addEventListener("click", event => {
+          event.stopPropagation();
+          const wrapper = model.parentElement; 
+          const bubble = wrapper.querySelector('.task-bubble');
+          const isVisible = bubble.getAttribute('visible');
+          bubble.setAttribute('visible', !isVisible);
+
+          if (!isVisible) {
+              const cameraPos = new THREE.Vector3();
+              scene.camera.el.object3D.getWorldPosition(cameraPos);
+              wrapper.object3D.lookAt(cameraPos.x, wrapper.object3D.position.y, cameraPos.z);
+          } else {
+              wrapper.object3D.rotation.set(0, 0, 0);
+          }
+        });
+      });
+
+      const doneBtns = document.querySelectorAll('.done-btn');
+      doneBtns.forEach(btn => {
+        btn.addEventListener("click", event => {
+          event.stopPropagation();
+          if (myTasks.length > 0) {
+            finishTask(0); 
+          } else {
+            debugLog.innerText = "Status: No tasks to finish!";
+          }
+        });
+      });
+
+      // --- 4. UI HELPERS ---
+      function openModal(id) { 
+          document.getElementById(id).style.display = 'block'; 
+          isModalOpen = true; 
+      }
+      
+      function closeModal(id) { 
+          document.getElementById(id).style.display = 'none'; 
+          isModalOpen = false;
+      }
+
+      function openTaskList() {
+          render2DList();
+          openModal('list-panel');
+          checkOverdueTasks();
+      }
+
+      function checkNewCategory(selectObj) {
+        document.getElementById('new-category-input').style.display = (selectObj.value === 'new') ? 'block' : 'none';
+      }
+
+      function selectUrgency(level) {
+        selectedUrgency = level;
+        document.getElementById('opt-chill').className = 'urgency-option';
+        document.getElementById('opt-warn').className = 'urgency-option';
+        document.getElementById('opt-hot').className = 'urgency-option';
+        document.getElementById('opt-' + level).classList.add('selected-' + level);
+      }
+      selectUrgency('chill');
+
+      // --- 5. TASK LOGIC ---
+      function saveTask() {
+        if(myTasks.length >= 10) {
+            alert("⚠️ Pockets Full! \n\nYou can only have 10 active tasks.\nPlease finish one before adding more.");
+            return;
+        }
+
+        const name = taskNameInput.value;
+        if(!name) return;
+
+        let urgencyIcon = "🌿";
+        if(selectedUrgency === 'warn') urgencyIcon = "⚠️";
+        if(selectedUrgency === 'hot') urgencyIcon = "🔥";
+
+        let catValue = taskCatInput.value;
+        if(catValue === 'new') catValue = newCatInput.value || "General";
+        
+        let catIcon = "⚪";
+        if(catValue === 'Math') catIcon = "🔵";
+        if(catValue === 'Science') catIcon = "🟢";
+        if(catValue === 'History') catIcon = "🔴";
+        if(catValue === 'Art') catIcon = "🟡";
+
+        let timeDisplay = "";
+        if(taskDueInput.value) {
+            const d = new Date(taskDueInput.value + 'T00:00');
+            timeDisplay = `(Due: ${d.getMonth()+1}/${d.getDate()}`;
+            if(taskTimeInput.value) {
+                let [hours, mins] = taskTimeInput.value.split(':');
+                let ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; 
+                timeDisplay += ` @ ${hours}:${mins} ${ampm}`;
+            }
+            timeDisplay += ")";
+        }
+
+        const newTask = {
+            id: Date.now(),
+            name: name,
+            category: catValue,
+            catIcon: catIcon,
+            urgency: urgencyIcon,
+            urgencyLevel: selectedUrgency, // Store 'chill', 'warn', or 'hot'
+            timeStr: timeDisplay,
+            rawDate: taskDueInput.value,
+            arString: `${urgencyIcon} ${catIcon} ${name}\n   ${timeDisplay}`
+        };
+        
+        myTasks.push(newTask);
+        update3DView();
+        
+        if(document.getElementById('list-panel').style.display === 'block') {
+            render2DList();
+        }
+
+        taskNameInput.value = "";
+        taskDueInput.value = "";
+        taskTimeInput.value = "";
+        closeModal('input-panel');
+      }
+
+      // --- 6. CELEBRATION LOGIC ---
+      function finishTask(index) {
+        // 1. Get task details BEFORE removing
+        const task = myTasks[index];
+        
+        // 2. Determine Message Pool based on Urgency
+        let pool = msgChill; // Default
+        if(task.urgencyLevel === 'warn') pool = msgWarn;
+        if(task.urgencyLevel === 'hot') pool = msgHot;
+
+        // 3. Pick Random Message
+        const randMsg = pool[Math.floor(Math.random() * pool.length)];
+        document.getElementById('celeb-msg').innerText = randMsg;
+
+        // 4. Remove Task
+        myTasks.splice(index, 1);
+        update3DView();
+        render2DList(); 
+        
+        // 5. Trigger Celebration
+        openModal('celebration-modal');
+        
+        // 6. Swap Models
+        document.querySelectorAll('.model-idle').forEach(el => el.setAttribute('visible', false));
+        document.querySelectorAll('.model-celeb').forEach(el => el.setAttribute('visible', true));
+        
+        debugLog.innerText = "Status: Task Completed! ✨";
+      }
+
+      function closeCelebration() {
+        closeModal('celebration-modal');
+        
+        // Swap Back (Hide Celebration, Show Idle)
+        document.querySelectorAll('.model-idle').forEach(el => el.setAttribute('visible', true));
+        document.querySelectorAll('.model-celeb').forEach(el => el.setAttribute('visible', false));
+      }
+
+      function update3DView() {
+         const hasTasks = myTasks.length > 0;
+         const textContent = myTasks.map(t => t.arString).join("\n\n");
+         
+         const allBubbles = document.querySelectorAll('.bubble-text');
+         allBubbles.forEach(text => {
+            if(!hasTasks) {
+                text.setAttribute('value', "No tasks yet! \n You are all caught up.");
+            } else {
+                text.setAttribute('value', textContent);
+            }
+         });
+
+         const finishGroups = document.querySelectorAll('.finish-group');
+         finishGroups.forEach(group => {
+             group.setAttribute('visible', hasTasks);
+             const btn = group.querySelector('.done-btn');
+             if(hasTasks) btn.classList.add('clickable');
+             else btn.classList.remove('clickable');
+         });
+      }
+
+      function render2DList() {
+        const container = document.getElementById('task-list-container');
+        container.innerHTML = ""; 
+
+        if(myTasks.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#555; background:rgba(255,255,255,0.8); padding:20px; border-radius:20px; margin-top:50px; font-size:18px;">No tasks yet! Go add some.</p>';
+            return;
+        }
+
+        myTasks.forEach((task, index) => {
+            const div = document.createElement('div');
+            div.className = 'task-item';
+            div.innerHTML = `
+                <div class="task-info">
+                    <div class="task-title">${task.urgency} ${task.catIcon} ${task.name}</div>
+                    <div class="task-meta">${task.category} • ${task.timeStr}</div>
+                </div>
+                <button class="btn-complete" onclick="finishTask(${index})">Done ✔</button>
+            `;
+            container.appendChild(div);
+        });
+      }
+
+      function checkOverdueTasks() {
+          const today = new Date();
+          today.setHours(0,0,0,0);
+          
+          let hasOverdue = false;
+          
+          myTasks.forEach(task => {
+              if(task.rawDate) {
+                  const dueDate = new Date(task.rawDate + 'T00:00');
+                  if(dueDate < today) {
+                      hasOverdue = true;
+                  }
+              }
+          });
+
+          if(hasOverdue) {
+              openModal('encouragement-modal');
+          }
+      }
+    </script>
+  </body>
+</html>
