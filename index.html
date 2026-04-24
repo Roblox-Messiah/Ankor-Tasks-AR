@@ -460,115 +460,13 @@
       vr-mode-ui="enabled: false" 
       device-orientation-permission-ui="enabled: false">
       
-      <a-assets timeout="30000">
-        <a-asset-item id="idleModel" src="./attachments/Animations-Fixed/Idle-Sways/Default-Idle-Stand.glb"></a-asset-item>
-        <a-asset-item id="wizardModel" src="./attachments/Customizations/Wizard_Hat_on_Buddy.glb"></a-asset-item>
-        <a-asset-item id="pirateModel" src="./attachments/Customizations/Pirate_Hat_on_Buddy.glb"></a-asset-item>
-        <a-asset-item id="cowboyModel" src="./attachments/Customizations/Cowboy_Hat_on_Buddy.glb"></a-asset-item>
-        <a-asset-item id="vikingModel" src="./attachments/Customizations/Viking_Helmet_on_Buddy.glb"></a-asset-item>
-        <a-asset-item id="strawModel" src="./attachments/Customizations/Straw_Hat_on_Buddy.glb"></a-asset-item>
-        <a-asset-item id="footballModel" src="./attachments/Customizations/Football_Helmet_on_Buddy.glb"></a-asset-item>
-        <a-asset-item id="haloModel" src="./attachments/Customizations/Halo_on_Buddy.glb"></a-asset-item>
-        
-        <a-asset-item id="boxModel" src="./attachments/Animations-Fixed/Breathing/Default_Box_Breathe_4-4-4-4.glb"></a-asset-item>
-        <a-asset-item id="relaxModel" src="./attachments/Animations-Fixed/Breathing/Default_Relax_Breathe_4-7-8.glb"></a-asset-item>
-
-        <a-asset-item id="dance6Model" src="./attachments/Animations-Fixed/Dances/Default_Dance_6.glb"></a-asset-item>
-        <a-asset-item id="gangnamModel" src="./attachments/Animations-Fixed/Dances/Default_Gangnam_Style.glb"></a-asset-item>
-        <a-asset-item id="twerkModel" src="./attachments/Animations-Fixed/Dances/Default_Twerk_Dance.glb"></a-asset-item>
-      </a-assets>
-
       <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
 
       <a-entity mindar-image-target="targetIndex: 0" class="ar-target">
         <a-entity class="model-wrapper">
           <a-cylinder class="clickable hit-box" position="0 0.8 0" radius="0.4" height="1.6" material="opacity: 0; transparent: true; depthWrite: false;"></a-cylinder>
 
-          <a-gltf-model class="model model-idle model-idle-default" src="#idleModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-wizard" src="#wizardModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-pirate" src="#pirateModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-cowboy" src="#cowboyModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-viking" src="#vikingModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-straw" src="#strawModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-football" src="#footballModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-halo" src="#haloModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          
-          <a-gltf-model class="model model-box" src="#boxModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-relax" src="#relaxModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          
-          <a-gltf-model class="model model-chill" src="#dance6Model" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-warn" src="#gangnamModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-hot" src="#twerkModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-
-          <a-entity class="task-bubble" position="0 1.6 0.5" scale="0.6 0.6 0.6" visible="false">
-             <a-box color="#e0d6c3" width="2.5" height="2.1" depth="0.04" position="0 0 -0.02"></a-box>
-             <a-box color="#fffcf2" width="2.4" height="2.0" depth="0.06" position="0 0 0"></a-box>
-             <a-text value="Ankor Tasks" color="#8dd7bd" align="center" width="4" position="0 0.8 0.04" font="kelsonsans" wrap-count="20"></a-text>
-             <a-text class="bubble-text" value="No tasks yet!" color="#786b59" align="center" width="2.2" position="0 0.1 0.04" font="kelsonsans" wrap-count="25"></a-text>
-             <a-entity class="finish-group" position="0 -0.6 0.04" visible="false">
-                <a-box class="clickable done-btn" color="#8dd7bd" width="1.2" height="0.4" depth="0.08" position="0 0 0"></a-box>
-                <a-text value="Finish Task" align="center" width="3" color="white" position="0 0 0.05" pointer-events="none"></a-text>
-             </a-entity>
-             <a-cone color="#e0d6c3" radius-bottom="0.25" radius-top="0" height="0.4" position="0 -1.1 -0.02" rotation="0 0 180"></a-cone>
-             <a-cone color="#fffcf2" radius-bottom="0.2" radius-top="0" height="0.4" position="0 -1.05 0.01" rotation="0 0 180"></a-cone>
-          </a-entity>
-        </a-entity>
-      </a-entity>
-      
-      <a-entity mindar-image-target="targetIndex: 1" class="ar-target">
-        <a-entity class="model-wrapper">
-          <a-cylinder class="clickable hit-box" position="0 0.8 0" radius="0.4" height="1.6" material="opacity: 0; transparent: true; depthWrite: false;"></a-cylinder>
-
-          <a-gltf-model class="model model-idle model-idle-default" src="#idleModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-wizard" src="#wizardModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-pirate" src="#pirateModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-cowboy" src="#cowboyModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-viking" src="#vikingModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-straw" src="#strawModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-football" src="#footballModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-halo" src="#haloModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-
-          <a-gltf-model class="model model-box" src="#boxModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-relax" src="#relaxModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          
-          <a-gltf-model class="model model-chill" src="#dance6Model" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-warn" src="#gangnamModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-hot" src="#twerkModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-
-          <a-entity class="task-bubble" position="0 1.6 0.5" scale="0.6 0.6 0.6" visible="false">
-             <a-box color="#e0d6c3" width="2.5" height="2.1" depth="0.04" position="0 0 -0.02"></a-box>
-             <a-box color="#fffcf2" width="2.4" height="2.0" depth="0.06" position="0 0 0"></a-box>
-             <a-text value="Ankor Tasks" color="#8dd7bd" align="center" width="4" position="0 0.8 0.04" font="kelsonsans" wrap-count="20"></a-text>
-             <a-text class="bubble-text" value="No tasks yet!" color="#786b59" align="center" width="2.2" position="0 0.1 0.04" font="kelsonsans" wrap-count="25"></a-text>
-             <a-entity class="finish-group" position="0 -0.6 0.04" visible="false">
-                <a-box class="clickable done-btn" color="#8dd7bd" width="1.2" height="0.4" depth="0.08" position="0 0 0"></a-box>
-                <a-text value="Finish Task" align="center" width="3" color="white" position="0 0 0.05" pointer-events="none"></a-text>
-             </a-entity>
-             <a-cone color="#e0d6c3" radius-bottom="0.25" radius-top="0" height="0.4" position="0 -1.1 -0.02" rotation="0 0 180"></a-cone>
-             <a-cone color="#fffcf2" radius-bottom="0.2" radius-top="0" height="0.4" position="0 -1.05 0.01" rotation="0 0 180"></a-cone>
-          </a-entity>
-        </a-entity>
-      </a-entity>
-
-      <a-entity mindar-image-target="targetIndex: 2" class="ar-target">
-        <a-entity class="model-wrapper">
-          <a-cylinder class="clickable hit-box" position="0 0.8 0" radius="0.4" height="1.6" material="opacity: 0; transparent: true; depthWrite: false;"></a-cylinder>
-
-          <a-gltf-model class="model model-idle model-idle-default" src="#idleModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-wizard" src="#wizardModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-pirate" src="#pirateModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-cowboy" src="#cowboyModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-viking" src="#vikingModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-straw" src="#strawModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-football" src="#footballModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-idle model-idle-halo" src="#haloModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-
-          <a-gltf-model class="model model-box" src="#boxModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-relax" src="#relaxModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          
-          <a-gltf-model class="model model-chill" src="#dance6Model" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-warn" src="#gangnamModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
-          <a-gltf-model class="model model-hot" src="#twerkModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="dynamic-buddy" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
 
           <a-entity class="task-bubble" position="0 1.6 0.5" scale="0.6 0.6 0.6" visible="false">
              <a-box color="#e0d6c3" width="2.5" height="2.1" depth="0.04" position="0 0 -0.02"></a-box>
@@ -607,7 +505,7 @@
           'wizard': 200
       };
 
-      // FIXED: Paths are now exactly matched to the filenames in your screenshots.
+      // FIXED: Paths perfectly match files in screenshots (Dashes used for Default-Idle-Stand.glb)
       const modelPaths = {
           'default': './attachments/Animations-Fixed/Idle-Sways/Default-Idle-Stand.glb',
           'wizard': './attachments/Customizations/Wizard_Hat_on_Buddy.glb',
@@ -746,26 +644,44 @@
          });
       });
 
+      // --- DYNAMIC SWAPPING LOGIC ---
       function hideAllARModels() {
-          document.querySelectorAll('.model').forEach(el => {
+          document.querySelectorAll('.dynamic-buddy').forEach(el => {
               el.setAttribute('visible', 'false');
               el.setAttribute('scale', '0 0 0');
-              if(el.object3D) el.object3D.visible = false;
           });
           document.querySelectorAll('.task-bubble').forEach(el => el.setAttribute('visible', 'false'));
           document.querySelectorAll('.model-wrapper').forEach(el => el.object3D.rotation.set(0, 0, 0));
       }
 
-      function showARModel(selector) {
-          document.querySelectorAll(selector).forEach(el => {
+      function showIdleModel() {
+          document.querySelectorAll('.dynamic-buddy').forEach(el => {
+              el.setAttribute('gltf-model', modelPaths[currentHat]); // Set the URL dynamically
               el.setAttribute('visible', 'true');
-              el.setAttribute('scale', '0.8 0.8 0.8');
-              if(el.object3D) el.object3D.visible = true;
+              
+              const wrapper = el.parentElement;
+              const bubble = wrapper.querySelector('.task-bubble');
+              if (bubble.getAttribute('visible') === 'true' || bubble.getAttribute('visible') === true) {
+                  el.setAttribute('scale', '0.55 0.55 0.55');
+              } else {
+                  el.setAttribute('scale', '0.8 0.8 0.8');
+              }
           });
       }
 
-      function showIdleModel() {
-          showARModel('.model-idle-' + currentHat);
+      function triggerAnimation(animKey) {
+          document.querySelectorAll('.dynamic-buddy').forEach(el => {
+              el.setAttribute('gltf-model', modelPaths[animKey]); // Swap out for the dance/breath
+              el.setAttribute('visible', 'true');
+              
+              const wrapper = el.parentElement;
+              const bubble = wrapper.querySelector('.task-bubble');
+              if (bubble.getAttribute('visible') === 'true' || bubble.getAttribute('visible') === true) {
+                  el.setAttribute('scale', '0.55 0.55 0.55');
+              } else {
+                  el.setAttribute('scale', '0.8 0.8 0.8');
+              }
+          });
       }
 
       const hitBoxes = document.querySelectorAll('.hit-box');
@@ -774,7 +690,7 @@
           event.stopPropagation();
           const wrapper = box.parentElement; 
           const bubble = wrapper.querySelector('.task-bubble');
-          const activeIdle = wrapper.querySelector('.model-idle-' + currentHat);
+          const activeIdle = wrapper.querySelector('.dynamic-buddy');
           
           const isBubbleVis = bubble.getAttribute('visible');
           if (isBubbleVis === true || isBubbleVis === 'true') {
@@ -1002,11 +918,11 @@
         hideAllARModels();
 
         if (task.urgencyLevel === 'hot') {
-            showARModel(`.model-hot`);
+            triggerAnimation('hot');
         } else if (task.urgencyLevel === 'warn') {
-            showARModel(`.model-warn`);
+            triggerAnimation('warn');
         } else {
-            showARModel(`.model-chill`);
+            triggerAnimation('chill');
         }
       }
 
@@ -1113,11 +1029,11 @@
           
           hideAllARModels();
           if (selectedBreathType === 'box') {
-              showARModel('.model-box');
+              triggerAnimation('box');
           } else if (selectedBreathType === 'relax') {
-              showARModel('.model-relax');
+              triggerAnimation('relax');
           } else {
-              showARModel('.model-idle-default'); 
+              showIdleModel();
           }
           
           const circle = document.getElementById('breathe-circle');
