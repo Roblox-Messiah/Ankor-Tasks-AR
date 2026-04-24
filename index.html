@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
+    
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Varela+Round&family=Nunito:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+      /* --- CORE SETUP --- */
+      html, body { 
+        margin: 0; padding: 0; width: 100%; height: 100%; 
+        overflow: hidden; 
+        background-color: transparent !important; 
+        font-family: 'Varela Round', sans-serif; 
+      }
+      canvas { background-color: transparent !important; }
+
+      /* --- PALETTE --- */
+      :root {
+        --glass-bg: rgba(255, 252, 242, 0.85); 
+        --glass-border: rgba(255, 255, 255, 0.6);
+        --nook-green: #8dd7bd;
+        --nook-dark-green: #6ebca4;
+        --nook-brown: #786b59;
+        --nook-orange: #f4a261;
+        --nook-red: #e76f51;  
+        --nook-blue: #70c1b3;
+        --nook-blue-dark: #589a8e;
+        --nook-pink: #ffc8dd; 
+        --nook-pink-dark: #e598b2;
+        --nook-gold: #ffd166;
+      }
+
+      /* Links */
+      a { color: var(--nook-blue-dark); text-decoration: none; font-weight: bold; transition: color 0.2s; }
+      a:hover { text-decoration: underline; color: var(--nook-green); }
+
+      /* --- ANIMATIONS --- */
+      @keyframes popIn {
+        0% { opacity: 0; transform: translate(-50%, -40%) scale(0.9); }
+        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
+        100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      }
+      
+      @keyframes dropDownToast {
+        0% { opacity: 0; transform: translate(-50%, -150%); }
+        100% { opacity: 1; transform: translate(-50%, 0); }
+      }
+
+      @keyframes slideUp {
+        0% { transform: translateY(100%); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+      }
+
+      /* --- MODAL STYLES (Glassmorphism) --- */
+      .nook-modal {
+        display: none; 
+        position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%, -50%); 
+        
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px); 
+        -webkit-backdrop-filter: blur(12px);
+        border: 2px solid var(--glass-border);
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+        
+        color: var(--nook-brown);
+        padding: 25px; 
+        border-radius: 35px; 
+        z-index: 2000;
+        text-align: left;
+        max-height: 85vh; overflow-y: auto;
+        
+        animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      }
+
+      /* --- SLIM BANNERS (Top Edge) --- */
+      .slim-banner {
+        top: 20px; 
+        left: 50%;
+        bottom: auto;
+        transform: translateX(-50%);
+        animation: dropDownToast 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        
+        width: 90%; max-width: 350px; 
+        padding: 15px 20px; 
+        text-align: center;
+        background: rgba(255, 252, 242, 0.95);
+        border-radius: 25px;
+        z-index: 5000;
+      }
+
+      #celebration-modal { border: 4px solid var(--nook-gold); }
+      #breathe-active-banner { display: none; border: 4px solid var(--nook-pink); box-shadow: 0 10px 30px rgba(229, 152, 178, 0.3); }
+      #reminder-modal { width: 85%; max-width: 320px; text-align: center; border: 4px solid var(--nook-blue); z-index: 5500; }
+      #urgent-prompt-modal { width: 85%; max-width: 320px; text-align: center; border: 4px solid var(--nook-red); z-index: 5500; }
+      #daily-checkin-modal { width: 85%; max-width: 320px; text-align: center; border: 4px solid var(--nook-pink-dark); z-index: 6000; }
+
+      /* Help Sub-Modals */
+      #help-panel, #tutorial-panel { width: 85%; max-width: 320px; text-align: center; }
+      #why-ankor-panel { width: 90%; max-width: 380px; text-align: left; }
+
+      /* --- CUSTOMIZATION GRID UI --- */
+      .cust-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+      .cust-item {
+        background: rgba(255, 255, 255, 0.6); border: 2px solid white; border-radius: 20px;
+        padding: 15px 5px; text-align: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .cust-item:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(112, 193, 179, 0.3); border-color: var(--nook-blue); }
+
+      /* --- FULL SCREEN LIST --- */
+      #list-panel {
+        width: 100%; height: 100%; max-height: 100%; max-width: 100%;
+        top: 0; left: 0; transform: none; animation: none; 
+        border-radius: 0; border: none; z-index: 3000; padding: 30px;
+        box-sizing: border-box; background: transparent; 
+      }
+
+      #spline-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+      #spline-bg iframe { width: 100%; height: 100%; border: none; }
+
+      /* Other Panels */
+      #input-panel { width: 85%; max-width: 350px; z-index: 4000; }
+      #breathe-panel { width: 90%; max-width: 350px; }
+      #customize-panel { width: 90%; max-width: 380px; } 
+      #confirm-hat-modal { width: 85%; max-width: 320px; text-align: center; z-index: 6000; }
+      #unlock-modal { width: 85%; max-width: 320px; text-align: center; z-index: 6500; border: 4px solid var(--nook-gold); } 
+      #encouragement-modal { width: 85%; max-width: 320px; text-align: center; z-index: 5000; border: 4px solid var(--nook-orange); } 
+      #lost-tracking-modal { width: 85%; max-width: 320px; text-align: center; z-index: 6000; }
+
+      h3 { 
+        text-align: center; margin-top: 0; color: var(--nook-green); 
+        font-family: 'Nunito', sans-serif; font-size: 24px; 
+        border-bottom: 2px dashed #e0d6c3; padding-bottom: 10px; text-shadow: 1px 1px 0px white;
+      }
+
+      label { font-size: 14px; font-weight: bold; display: block; margin-top: 10px; margin-bottom: 5px; color: #887; }
+      
+      input, select {
+        width: 100%; padding: 12px; border-radius: 20px; border: 2px solid white;
+        background: rgba(255,255,255,0.6); color: var(--nook-brown); 
+        font-family: 'Varela Round', sans-serif; font-size: 16px;
+        box-sizing: border-box; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.05); transition: 0.2s;
+      }
+      input:focus { outline: none; border-color: var(--nook-green); background: white; }
+
+      /* Buttons */
+      .nook-btn, .float-btn, #start-btn { box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2) !important; }
+
+      .nook-btn {
+        width: 100%; padding: 14px; margin-top: 15px; border: none; border-radius: 25px;
+        font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 800; letter-spacing: 0.5px;
+        cursor: pointer; color: white; transition: transform 0.1s, filter 0.2s;
+        text-shadow: 1px 1px 0 rgba(0,0,0,0.1);
+      }
+      .btn-save { background: linear-gradient(135deg, var(--nook-green), var(--nook-dark-green)); }
+      .btn-cancel { background: #d6ccc2; color: #555; margin-top: 10px; }
+      .btn-celeb { background: linear-gradient(135deg, var(--nook-gold), var(--nook-orange)); padding: 10px; margin-top: 5px;}
+      .btn-hot { background: linear-gradient(135deg, var(--nook-orange), var(--nook-red)); }
+      .nook-btn:active { transform: scale(0.95); }
+
+      .float-btn {
+        position: absolute; z-index: 1000; border-radius: 50px; 
+        border: 3px solid white; color: white; font-weight: bold;
+        cursor: pointer; transition: transform 0.2s;
+      }
+      .float-btn:active { transform: scale(0.9); }
+
+      #add-btn { bottom: 30px; right: 30px; width: 65px; height: 65px; background: var(--nook-green); font-size: 32px; display: flex; align-items: center; justify-content: center; }
+      #breathe-btn { bottom: 30px; left: 30px; padding: 12px 20px; background: var(--nook-pink); font-size: 16px; }
+      
+      #list-btn { top: 30px; right: 30px; padding: 10px 18px; background: var(--nook-blue); font-size: 14px; }
+      #help-btn { top: 85px; right: 30px; padding: 10px 18px; background: var(--nook-orange); font-size: 14px; border-radius: 20px; }
+      
+      #customize-btn { top: 30px; left: 30px; padding: 10px 18px; background: var(--nook-blue); font-size: 14px; }
+
+      #start-btn { 
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+        z-index: 9999; padding: 15px 40px; 
+        background: linear-gradient(135deg, var(--nook-blue), var(--nook-blue-dark)); 
+        color: white; font-family: 'Nunito', sans-serif; font-size: 20px; font-weight: bold;
+        border: 4px solid white; border-radius: 30px; cursor: pointer;
+        animation: popIn 0.5s ease-out;
+      }
+
+      .task-item { 
+        background: rgba(255,255,255,0.85); border-radius: 20px; padding: 15px; margin-bottom: 12px; 
+        display: flex; align-items: center; justify-content: space-between; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid white;
+        animation: slideUp 0.3s ease-out; backdrop-filter: blur(5px);
+      }
+      .task-info { text-align: left; }
+      .task-title { font-weight: bold; font-size: 16px; color: #555; }
+      .task-meta { font-size: 12px; color: #999; margin-top: 4px; }
+      .btn-complete { background: var(--nook-green); color: white; border: none; padding: 8px 15px; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: bold; }
+      .btn-delete { background: var(--nook-red); color: white; border: none; padding: 8px 15px; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(231, 111, 81, 0.3); }
+
+      /* --- BREATHE STYLES --- */
+      .breathe-item { 
+        background: transparent; border: 2px dashed #e598b2; 
+        padding: 15px; border-radius: 20px; margin-bottom: 12px; 
+        color: #d680a8; font-weight: bold; text-align: center; cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      .breathe-item.selected {
+        background: linear-gradient(135deg, var(--nook-pink), var(--nook-pink-dark));
+        border: 2px solid white; color: white; box-shadow: 0 4px 15px rgba(229, 152, 178, 0.4);
+      }
+
+      .mini-breathe-circle {
+        width: 30px; height: 30px; border-radius: 50%;
+        background: linear-gradient(135deg, var(--nook-pink), var(--nook-pink-dark));
+        margin: 10px auto; border: 2px solid white;
+        transition-property: transform; transition-timing-function: linear;
+      }
+      
+      .urgency-container { display: flex; justify-content: space-between; margin-top: 5px; gap: 8px; }
+      .urgency-option { cursor: pointer; padding: 10px; border-radius: 15px; border: 2px solid transparent; background: rgba(255,255,255,0.5); flex: 1; text-align: center; font-size: 20px; transition: 0.2s; }
+      .urgency-option:hover { transform: translateY(-2px); }
+      .urgency-option.selected-chill { background: #d8f3dc; border-color: #95d5b2; box-shadow: 0 4px 10px rgba(149, 213, 178, 0.3); }
+      .urgency-option.selected-warn { background: #ffedd5; border-color: var(--nook-orange); box-shadow: 0 4px 10px rgba(244, 162, 97, 0.3); }
+      .urgency-option.selected-hot { background: #ffccd5; border-color: var(--nook-red); box-shadow: 0 4px 10px rgba(231, 111, 81, 0.3); }
+      
+      .date-time-row { display: flex; flex-direction: column; gap: 5px; } 
+    </style>
+  </head>
+  <body>
+
+    <button id="start-btn">Start Ankor Tasks</button>
+    
+    <button id="add-btn" class="float-btn" onclick="openModal('input-panel')">+</button>
+    <button id="list-btn" class="float-btn" onclick="openTaskList()">📋 All Tasks</button>
+    <button id="help-btn" class="float-btn" onclick="openModal('help-panel')">❓ Help</button>
+    
+    <button id="breathe-btn" class="float-btn" style="display: none;" onclick="openBreatheMenu()">🌸 Breathe</button>
+    
+    <button id="customize-btn" class="float-btn" style="display: none;" onclick="renderWardrobe(); openModal('customize-panel')">Customize</button>
+
+    <div id="help-panel" class="nook-modal">
+      <h3 style="color: var(--nook-orange);">❓ Help Center</h3>
+      <p style="text-align:center; font-size: 14px; color:#777; margin-bottom: 15px;">Need some assistance?</p>
+      
+      <button class="nook-btn" style="background: var(--nook-blue);" onclick="openModal('tutorial-panel'); closeModal('help-panel');">📖 Tutorial</button>
+      <button class="nook-btn" style="background: var(--nook-green);" onclick="window.open('./ankor-print-out.pdf', '_blank')">🖨️ Print Out AR Card</button>
+      <button class="nook-btn" style="background: var(--nook-pink-dark);" onclick="openModal('why-ankor-panel'); closeModal('help-panel');">⚓ Why Ankor?</button>
+      
+      <button class="nook-btn btn-cancel" onclick="closeModal('help-panel')">Close</button>
+    </div>
+
+    <div id="tutorial-panel" class="nook-modal">
+        <h3 style="color: var(--nook-blue);">📖 Tutorial</h3>
+        <p style="font-size: 14px; color:#555; line-height: 1.6;">
+          <strong>1.</strong> Print out the AR target card.<br>
+          <strong>2.</strong> Point your camera at the card to see your buddy.<br>
+          <strong>3.</strong> Tap the floating <b>+</b> button to add a task.<br>
+          <strong>4.</strong> Tap your 3D buddy to view your tasks hovering in AR.<br>
+          <strong>5.</strong> When you feel overwhelmed, tap <b>🌸 Breathe</b> for a guided exercise!<br>
+          <strong>6.</strong> Complete tasks to earn <b>Ankor Points</b> and unlock outfits in the Customize menu!
+        </p>
+        <button class="nook-btn btn-cancel" onclick="closeModal('tutorial-panel'); openModal('help-panel');">Back</button>
+    </div>
+
+    <div id="why-ankor-panel" class="nook-modal">
+        <h3 style="color: var(--nook-pink-dark); text-align: center;">⚓ Why Ankor?</h3>
+        
+        <p style="font-size: 14px; color:#555; line-height: 1.5; margin-top: 5px;">
+          Ankor Tasks is designed to keep you grounded. A traditional to-do list can feel overwhelming, but by combining <strong>interactive AR</strong> with <strong>physical repetition</strong> (like scanning your card), you build stronger memory retention and better habits.
+        </p>
+        <p style="font-size: 14px; color:#555; line-height: 1.5;">
+          We also prioritize <strong>mental health</strong>. When anxiety spikes, taking just a minute to breathe activates your parasympathetic nervous system, lowering stress and resetting your focus.
+        </p>
+
+        <h4 style="color: var(--nook-blue); margin: 15px 0 5px 0; font-size: 16px;">🧠 Memory & Habits</h4>
+        <ul style="font-size: 12px; color:#555; padding-left: 20px; margin: 0; line-height: 1.6;">
+            <li><a href="https://www.emjreviews.com/en-us/amj/emj-gold/article/engaging-the-medical-mind-does-interactivity-improve-recall/" target="_blank">Does Interactivity Improve Recall?</a></li>
+            <li><a href="https://productivity.academy/news/stick-habits-physical-reminders/" target="_blank">Using Physical Reminders for Habits</a></li>
+            <li><a href="https://docs.iza.org/dp13657.pdf" target="_blank">The Science of Reminders (PDF)</a></li>
+            <li><a href="https://www.sciencedirect.com/science/article/pii/S0167945718307024" target="_blank">Cognitive Benefits of Interaction</a></li>
+        </ul>
+
+        <h4 style="color: var(--nook-green); margin: 15px 0 5px 0; font-size: 16px;">🍃 Breathing & Wellness</h4>
+        <ul style="font-size: 12px; color:#555; padding-left: 20px; margin: 0; line-height: 1.6;">
+            <li><a href="https://medicine.yale.edu/news-article/the-power-of-the-breath/" target="_blank">The Power of the Breath</a></li>
+            <li><a href="https://www.webmd.com/brain/parasympathetic-nervous-system-what-to-know" target="_blank">The Parasympathetic Nervous System</a></li>
+            <li><a href="https://www.urmc.rochester.edu/MediaLibraries/URMCMedia/medical-humanities/documents/Effects-of-Length-of-Mindfulness-Practice-on-Mindfulness-Depression-Anxiety-and-Stress_-a-Randomized-Controlled-Experiment.pdf" target="_blank">Effects of Mindfulness Practice (PDF)</a></li>
+        </ul>
+
+        <button class="nook-btn btn-cancel" style="margin-top: 20px;" onclick="closeModal('why-ankor-panel'); openModal('help-panel');">Back</button>
+    </div>
+
+    <div id="input-panel" class="nook-modal">
+      <h3>🍃 New Task 🍃</h3>
+      <label>What needs doing?</label>
+      <input type="text" id="task-name" placeholder="e.g. Math Quiz...">
+      
+      <label>Class / Category</label>
+      <select id="task-category" onchange="checkNewCategory(this)">
+        <option value="General">General ⚪</option>
+        <option value="Math">Math 🔵</option>
+        <option value="Science">Science 🟢</option>
+        <option value="History">History 🔴</option>
+        <option value="Art">Art 🟡</option>
+        <option value="new">+ Create New...</option>
+      </select>
+      <input type="text" id="new-category-input" placeholder="Enter Category Name" style="display:none; margin-top:5px;">
+
+      <div class="date-time-row">
+        <div><label>Due Date</label><input type="date" id="task-due"></div>
+        <div><label>Time</label><input type="time" id="task-time"></div>
+      </div>
+
+      <label>Urgency</label>
+      <div class="urgency-container">
+        <div class="urgency-option" id="opt-chill" onclick="selectUrgency('chill')">🌿<br><span style="font-size:10px; font-weight:bold; color:#555;">Chill</span></div>
+        <div class="urgency-option" id="opt-warn" onclick="selectUrgency('warn')">⚠️<br><span style="font-size:10px; font-weight:bold; color:#555;">Important</span></div>
+        <div class="urgency-option" id="opt-hot" onclick="selectUrgency('hot')">🔥<br><span style="font-size:10px; font-weight:bold; color:#555;">ASAP</span></div>
+      </div>
+
+      <label>Reminders</label>
+      <select id="task-reminder">
+        <option value="none">No Reminders</option>
+        <option value="daily">Daily until due</option>
+        <option value="morning">Morning of due date</option>
+      </select>
+
+      <button class="nook-btn btn-save" onclick="saveTask()">I'll do it!</button>
+      <button class="nook-btn btn-cancel" onclick="closeModal('input-panel')">Nevermind</button>
+    </div>
+
+    <div id="list-panel" class="nook-modal">
+      <div id="spline-bg">
+         <iframe src='https://my.spline.design/chess-qmWeMBevEpnXEiVl4GtrlbLK/' frameborder='0' width='100%' height='100%'></iframe>
+      </div>
+      <h3 style="font-size: 32px; border:none; margin-bottom: 20px; color: white; text-shadow: 0 2px 5px rgba(0,0,0,0.2);">📋 Your Dashboard</h3>
+      <div id="task-list-container"></div>
+      <button class="nook-btn" style="background:var(--nook-green); display:block; margin: 20px auto; width: auto; padding: 12px 30px;" onclick="openModal('input-panel')">+ Add New Task</button>
+      
+      <button class="nook-btn btn-cancel" style="position: absolute; bottom: 20px; right: 20px; width: 220px; padding: 10px 25px; margin: 0; z-index: 5000;" onclick="closeModal('list-panel'); resetTrackingLogic()">Return</button>
+    </div>
+
+    <div id="breathe-panel" class="nook-modal">
+      <h3 style="color: var(--nook-pink-dark)">🌸 Breathing Room</h3>
+      <p style="text-align:center; font-style:italic; margin-bottom:20px; color:#777;">Select an exercise to center yourself.</p>
+      
+      <div class="breathe-item selected" onclick="selectBreathingRoutine('box', this)">Box Breathing (4-4-4-4)</div>
+      <div class="breathe-item" onclick="selectBreathingRoutine('relax', this)">Relaxing Breath (4-7-8)</div>
+      <div class="breathe-item" onclick="selectBreathingRoutine('mindful', this)">Mindful Minute (5-5)</div>
+      <button class="nook-btn" style="background:linear-gradient(135deg, var(--nook-pink), var(--nook-pink-dark)); margin-top: 15px;" onclick="startBreathing()">Start Exercise</button>
+      
+      <div style="margin-top: 25px; border-top: 2px dashed #e598b2; padding-top: 15px;">
+         <h4 style="color: var(--nook-pink-dark); text-align: center; margin: 0 0 5px 0;">Daily Check-In</h4>
+         <p style="font-size:12px; text-align:center; color:#777; margin-top:0;">Set a time to log your feelings.</p>
+         <div style="display:flex; gap:10px; justify-content:center; align-items:center;">
+            <input type="time" id="checkin-time-input" style="width: 140px; padding: 8px;">
+            <button class="nook-btn" style="margin:0; width:auto; padding:8px 15px; background:var(--nook-pink-dark);" onclick="saveDailyCheckinTime()">Save</button>
+         </div>
+         <p id="checkin-save-msg" style="font-size:12px; color:var(--nook-green); text-align:center; font-weight:bold; display:none; margin:5px 0 0 0;">Time saved!</p>
+      </div>
+
+      <button class="nook-btn btn-cancel" onclick="closeModal('breathe-panel')">Return</button>
+    </div>
+
+    <div id="breathe-active-banner" class="nook-modal slim-banner">
+        <h3 id="active-breathe-title" style="color: var(--nook-pink-dark); border:none; padding-bottom:0; font-size:20px;">Box Breathing</h3>
+        <div id="breathe-instruction" style="font-size: 20px; font-weight: bold; color: var(--nook-brown); margin-top: 10px; min-height: 60px;">Get Ready...</div>
+        <div id="breathe-circle" class="mini-breathe-circle"></div>
+        <p id="breathe-cycle-count" style="font-size:12px; color:#999; margin: 0;">Cycle 1 / 4</p>
+        <button class="nook-btn btn-cancel" style="margin-top: 10px; padding: 8px;" onclick="stopBreathing()">End Early</button>
+    </div>
+
+    <div id="daily-checkin-modal" class="nook-modal">
+        <h3 style="color: var(--nook-pink-dark); border:none;">How was your day?</h3>
+        
+        <div id="checkin-step-1" style="display:flex; justify-content:space-around; margin-top:20px;">
+            <button class="nook-btn" style="width:30%; font-size:28px; padding:10px; background:#8dd7bd;" onclick="handleCheckin('good')">😊</button>
+            <button class="nook-btn" style="width:30%; font-size:28px; padding:10px; background:#f4a261;" onclick="handleCheckin('okay')">😐</button>
+            <button class="nook-btn" style="width:30%; font-size:28px; padding:10px; background:#e76f51;" onclick="handleCheckin('rough')">😔</button>
+        </div>
+        
+        <div id="checkin-step-2" style="display:none; text-align:center;">
+            <p style="font-size:16px; margin: 20px 0; color:#555;">It sounds like things were a bit tough today twin. Would you like to take a moment to do a quick breathing exercise to decompress?</p>
+            <button class="nook-btn btn-save" onclick="closeModal('daily-checkin-modal'); openBreatheMenu();">Yes, I lowk need it</button>
+            <button class="nook-btn btn-cancel" onclick="closeModal('daily-checkin-modal')">Nah, I'm chillin</button>
+        </div>
+    </div>
+
+    <div id="customize-panel" class="nook-modal">
+      <h3 style="color: var(--nook-blue);">🎨 Wardrobe</h3>
+      <p id="points-display" style="text-align:center; font-weight: bold; color: var(--nook-gold); font-size: 16px; margin-bottom: 5px;">🪙 0 Points</p>
+      <p style="text-align:center; font-style:italic; margin-bottom:10px; color:#777; font-size: 12px;">Complete tasks to earn points and unlock gear!</p>
+      
+      <div id="wardrobe-grid" class="cust-grid"></div>
+      
+      <button class="nook-btn btn-cancel" onclick="closeModal('customize-panel')">Close</button>
+    </div>
+
+    <div id="unlock-modal" class="nook-modal">
+        <h3 style="color: var(--nook-gold);">Unlock Item?</h3>
+        <p id="unlock-desc" style="font-size: 16px; margin: 15px 0; color: #555; text-align: center;"></p>
+        <p id="unlock-error" style="color: var(--nook-red); font-size: 12px; font-weight: bold; text-align: center; display: none;">Not enough points! Finish more tasks.</p>
+        <button class="nook-btn" style="background:var(--nook-gold);" onclick="confirmUnlock()">Purchase 🛒</button>
+        <button class="nook-btn btn-cancel" onclick="closeModal('unlock-modal'); openModal('customize-panel');">Nevermind</button>
+    </div>
+
+    <div id="confirm-hat-modal" class="nook-modal" style="z-index: 6000;">
+      <h3 id="confirm-hat-title" style="color: var(--nook-blue);">Equip Hat?</h3>
+      <div style="background: rgba(255,255,255,0.7); border-radius: 20px; border: 2px solid white; margin: 15px 0; overflow: hidden; box-shadow: inset 0 4px 10px rgba(0,0,0,0.05);">
+        <model-viewer id="hat-preview-viewer" src="" auto-rotate camera-controls shadow-intensity="1" style="width: 100%; height: 250px; background-color: transparent;"></model-viewer>
+      </div>
+      <p style="text-align:center; font-size:12px; color:#999; margin:0;">(Drag to rotate)</p>
+      <button class="nook-btn" style="background:var(--nook-blue);" onclick="confirmHat()">Equip Now</button>
+      <button class="nook-btn btn-cancel" onclick="closeModal('confirm-hat-modal'); openModal('customize-panel');">Go Back</button>
+    </div>
+
+    <div id="encouragement-modal" class="nook-modal">
+      <h3 style="color: var(--nook-orange); font-size:26px;">Breathe 🍃</h3>
+      <p style="font-size:16px; margin: 20px 0; text-align: center;">Hey brochacho! It looks like the time for <strong id="overdue-task-name" style="color:var(--nook-brown);">a task</strong> has passed.</p>
+      <p style="font-style:italic; color:#777; background: rgba(255,255,255,0.5); padding: 15px; border-radius: 15px; text-align: center;">"It's not the end of the world, slime. Take a deep breath, everything will be okay!"</p>
+      <button class="nook-btn" style="background:var(--nook-orange)" onclick="closeModal('encouragement-modal')">Wait, I'm goated!</button>
+    </div>
+
+    <div id="lost-tracking-modal" class="nook-modal">
+      <h3 style="color: var(--nook-red)">⚠️ Signal Lost...</h3>
+      <p>Ankor Card not detected for 15s.</p>
+      <button class="nook-btn" style="background:var(--nook-blue)" onclick="openMakeCard()">Make a New One</button>
+      <button class="nook-btn" style="background:var(--nook-green)" onclick="openTaskList(); closeModal('lost-tracking-modal')">Go to Task List</button>
+      <button class="nook-btn btn-cancel" onclick="resetTrackingLogic()">Keep Searching</button>
+    </div>
+
+    <div id="celebration-modal" class="nook-modal slim-banner">
+      <h3 style="color: var(--nook-orange); font-size: 22px; border:none; margin-bottom: 5px; padding-bottom: 0;">🎉 Outstanding! 🎉</h3>
+      <p id="celeb-msg" style="font-size:16px; margin: 10px 0; font-weight: bold; color: #555;">You finished a task!</p>
+      <button class="nook-btn btn-celeb" onclick="closeCelebration()">Let's Goooo</button>
+    </div>
+
+    <div id="reminder-modal" class="nook-modal">
+      <h3 style="color: var(--nook-blue); font-size: 24px;">🔔 Reminders 🔔</h3>
+      <div id="reminder-list" style="font-size:15px; margin: 15px 0; color: #555; text-align: left; font-weight:bold;"></div>
+      <button class="nook-btn" style="background:var(--nook-blue)" onclick="closeModal('reminder-modal')">Got it!</button>
+    </div>
+
+    <div id="urgent-prompt-modal" class="nook-modal">
+      <h3 style="color: var(--nook-red); font-size: 26px; border-bottom: 2px dashed var(--nook-red);">🔥 High Priority!</h3>
+      <p style="font-size:16px; margin: 20px 0; text-align: center; color: #555;">This task looks urgent. Would you like to take a sec for a breathing exercise to center yourself before tackling it?</p>
+      <button class="nook-btn btn-hot" onclick="closeModal('urgent-prompt-modal'); openBreatheMenu();">Yea, let's chill 🧘‍♂️</button>
+      <button class="nook-btn btn-cancel" onclick="closeModal('urgent-prompt-modal'); setTimeout(checkActiveReminders, 500);">Nah, I'm good! ⚡</button>
+    </div>
+
+    <a-scene 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; missTolerance: 10;" 
+      color-space="sRGB" 
+      renderer="colorManagement: true, physicallyCorrectLights; alpha: true" 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false">
+      
+      <a-assets timeout="30000">
+        <a-asset-item id="idleModel" src="./attachments/Animations-Fixed/Idle-Sways/Default Idle Stand.glb"></a-asset-item>
+        <a-asset-item id="wizardModel" src="./attachments/Customizations/Wizard_Hat_on_Buddy.glb"></a-asset-item>
+        <a-asset-item id="pirateModel" src="./attachments/Customizations/Pirate_Hat_on_Buddy.glb"></a-asset-item>
+        <a-asset-item id="cowboyModel" src="./attachments/Customizations/Cowboy Hat on Buddy.glb"></a-asset-item>
+        <a-asset-item id="vikingModel" src="./attachments/Customizations/Viking_Helmet_on_Buddy.glb"></a-asset-item>
+        <a-asset-item id="strawModel" src="./attachments/Customizations/Straw_Hat_on_Buddy.glb"></a-asset-item>
+        <a-asset-item id="footballModel" src="./attachments/Customizations/Football_Helmet_on_Buddy.glb"></a-asset-item>
+        <a-asset-item id="haloModel" src="./attachments/Customizations/Halo_on_Buddy.glb"></a-asset-item>
+        
+        <a-asset-item id="boxModel" src="./attachments/Animations-Fixed/Breathing/Default Box Breathe 4-4-4-4.glb"></a-asset-item>
+        <a-asset-item id="relaxModel" src="./attachments/Animations-Fixed/Breathing/Default Relax Breathe 4-7-8.glb"></a-asset-item>
+
+        <a-asset-item id="dance6Model" src="./attachments/Animations-Fixed/Dances/Default Dance 6.glb"></a-asset-item>
+        <a-asset-item id="gangnamModel" src="./attachments/Animations-Fixed/Dances/Default Gangnam Style.glb"></a-asset-item>
+        <a-asset-item id="twerkModel" src="./attachments/Animations-Fixed/Dances/Default Twerk Dance.glb"></a-asset-item>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
+
+      <a-entity mindar-image-target="targetIndex: 0" class="ar-target">
+        <a-entity class="model-wrapper">
+          <a-cylinder class="clickable hit-box" position="0 0.8 0" radius="0.4" height="1.6" material="opacity: 0; transparent: true; depthWrite: false;"></a-cylinder>
+
+          <a-gltf-model class="model model-idle model-idle-default" src="#idleModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-wizard" src="#wizardModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-pirate" src="#pirateModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-cowboy" src="#cowboyModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-viking" src="#vikingModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-straw" src="#strawModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-football" src="#footballModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-halo" src="#haloModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          
+          <a-gltf-model class="model model-box" src="#boxModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-relax" src="#relaxModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          
+          <a-gltf-model class="model model-chill" src="#dance6Model" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-warn" src="#gangnamModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-hot" src="#twerkModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+
+          <a-entity class="task-bubble" position="0 1.6 0.5" scale="0.6 0.6 0.6" visible="false">
+             <a-box color="#e0d6c3" width="2.5" height="2.1" depth="0.04" position="0 0 -0.02"></a-box>
+             <a-box color="#fffcf2" width="2.4" height="2.0" depth="0.06" position="0 0 0"></a-box>
+             <a-text value="Ankor Tasks" color="#8dd7bd" align="center" width="4" position="0 0.8 0.04" font="kelsonsans" wrap-count="20"></a-text>
+             <a-text class="bubble-text" value="No tasks yet!" color="#786b59" align="center" width="2.2" position="0 0.1 0.04" font="kelsonsans" wrap-count="25"></a-text>
+             <a-entity class="finish-group" position="0 -0.6 0.04" visible="false">
+                <a-box class="clickable done-btn" color="#8dd7bd" width="1.2" height="0.4" depth="0.08" position="0 0 0"></a-box>
+                <a-text value="Finish Task" align="center" width="3" color="white" position="0 0 0.05" pointer-events="none"></a-text>
+             </a-entity>
+             <a-cone color="#e0d6c3" radius-bottom="0.25" radius-top="0" height="0.4" position="0 -1.1 -0.02" rotation="0 0 180"></a-cone>
+             <a-cone color="#fffcf2" radius-bottom="0.2" radius-top="0" height="0.4" position="0 -1.05 0.01" rotation="0 0 180"></a-cone>
+          </a-entity>
+        </a-entity>
+      </a-entity>
+      
+      <a-entity mindar-image-target="targetIndex: 1" class="ar-target">
+        <a-entity class="model-wrapper">
+          <a-cylinder class="clickable hit-box" position="0 0.8 0" radius="0.4" height="1.6" material="opacity: 0; transparent: true; depthWrite: false;"></a-cylinder>
+
+          <a-gltf-model class="model model-idle model-idle-default" src="#idleModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-wizard" src="#wizardModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-pirate" src="#pirateModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-cowboy" src="#cowboyModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-viking" src="#vikingModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-straw" src="#strawModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-football" src="#footballModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-halo" src="#haloModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+
+          <a-gltf-model class="model model-box" src="#boxModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-relax" src="#relaxModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          
+          <a-gltf-model class="model model-chill" src="#dance6Model" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-warn" src="#gangnamModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-hot" src="#twerkModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+
+          <a-entity class="task-bubble" position="0 1.6 0.5" scale="0.6 0.6 0.6" visible="false">
+             <a-box color="#e0d6c3" width="2.5" height="2.1" depth="0.04" position="0 0 -0.02"></a-box>
+             <a-box color="#fffcf2" width="2.4" height="2.0" depth="0.06" position="0 0 0"></a-box>
+             <a-text value="Ankor Tasks" color="#8dd7bd" align="center" width="4" position="0 0.8 0.04" font="kelsonsans" wrap-count="20"></a-text>
+             <a-text class="bubble-text" value="No tasks yet!" color="#786b59" align="center" width="2.2" position="0 0.1 0.04" font="kelsonsans" wrap-count="25"></a-text>
+             <a-entity class="finish-group" position="0 -0.6 0.04" visible="false">
+                <a-box class="clickable done-btn" color="#8dd7bd" width="1.2" height="0.4" depth="0.08" position="0 0 0"></a-box>
+                <a-text value="Finish Task" align="center" width="3" color="white" position="0 0 0.05" pointer-events="none"></a-text>
+             </a-entity>
+             <a-cone color="#e0d6c3" radius-bottom="0.25" radius-top="0" height="0.4" position="0 -1.1 -0.02" rotation="0 0 180"></a-cone>
+             <a-cone color="#fffcf2" radius-bottom="0.2" radius-top="0" height="0.4" position="0 -1.05 0.01" rotation="0 0 180"></a-cone>
+          </a-entity>
+        </a-entity>
+      </a-entity>
+
+      <a-entity mindar-image-target="targetIndex: 2" class="ar-target">
+        <a-entity class="model-wrapper">
+          <a-cylinder class="clickable hit-box" position="0 0.8 0" radius="0.4" height="1.6" material="opacity: 0; transparent: true; depthWrite: false;"></a-cylinder>
+
+          <a-gltf-model class="model model-idle model-idle-default" src="#idleModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-wizard" src="#wizardModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-pirate" src="#pirateModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-cowboy" src="#cowboyModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-viking" src="#vikingModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-straw" src="#strawModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-football" src="#footballModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-idle model-idle-halo" src="#haloModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+
+          <a-gltf-model class="model model-box" src="#boxModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-relax" src="#relaxModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          
+          <a-gltf-model class="model model-chill" src="#dance6Model" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-warn" src="#gangnamModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+          <a-gltf-model class="model model-hot" src="#twerkModel" position="0 0 0" scale="0 0 0" rotation="-20 0 0" visible="false" animation-mixer></a-gltf-model>
+
+          <a-entity class="task-bubble" position="0 1.6 0.5" scale="0.6 0.6 0.6" visible="false">
+             <a-box color="#e0d6c3" width="2.5" height="2.1" depth="0.04" position="0 0 -0.02"></a-box>
+             <a-box color="#fffcf2" width="2.4" height="2.0" depth="0.06" position="0 0 0"></a-box>
+             <a-text value="Ankor Tasks" color="#8dd7bd" align="center" width="4" position="0 0.8 0.04" font="kelsonsans" wrap-count="20"></a-text>
+             <a-text class="bubble-text" value="No tasks yet!" color="#786b59" align="center" width="2.2" position="0 0.1 0.04" font="kelsonsans" wrap-count="25"></a-text>
+             <a-entity class="finish-group" position="0 -0.6 0.04" visible="false">
+                <a-box class="clickable done-btn" color="#8dd7bd" width="1.2" height="0.4" depth="0.08" position="0 0 0"></a-box>
+                <a-text value="Finish Task" align="center" width="3" color="white" position="0 0 0.05" pointer-events="none"></a-text>
+             </a-entity>
+             <a-cone color="#e0d6c3" radius-bottom="0.25" radius-top="0" height="0.4" position="0 -1.1 -0.02" rotation="0 0 180"></a-cone>
+             <a-cone color="#fffcf2" radius-bottom="0.2" radius-top="0" height="0.4" position="0 -1.05 0.01" rotation="0 0 180"></a-cone>
+          </a-entity>
+        </a-entity>
+      </a-entity>
+
+    </a-scene>
+
+    <script>
+      let myTasks = []; 
+      let selectedUrgency = 'chill'; 
+      let currentHat = 'default'; 
+
+      // NEW: Gamification Variables
+      let ankorPoints = 0;
+      let unlockedItems = ['default'];
+      
+      const itemCosts = {
+          'default': 0,
+          'pirate': 50,
+          'straw': 50,
+          'cowboy': 100,
+          'football': 100,
+          'halo': 150,
+          'viking': 150,
+          'wizard': 200
+      };
+      
+      const msgChill = [
+          "Nice job twin 😎", 
+          "Easy breezy! 🍃", 
+          "When you finish a task so I lowk congradulate you", 
+          "Light work for my goat",
+          "Like taking candy from a baby (not that you should ever do that, but you totally could, if you really wanted to)"
+      ];
+      const msgWarn = [
+          "Good job type shi", 
+          "Jarvis, get me 1 million high fives", 
+          "Chat, clip that", 
+          "The way you completed that task was so tuff ✅",
+          "If I were a cat, I'd say you're doing great, but it would sound like this: meow"
+      ];
+      const msgHot = [
+          "GET YO SWAG UP RAHHHH YOU DID IT (Imagine Save Me by Chief Keef is playing rn) 🔥", 
+          "That task was no match for you, twinnamon roll ⚡", 
+          "I never doubted you brotato chip 🏆", 
+          "MODs, ban the stress of that task from stream",
+          "ZAMNNNNN you are the goatest of all time!!!"
+      ];
+      
+      let visibleCount = 0;
+      let cameraActive = false;
+      let isModalOpen = false;
+
+      const startBtn = document.getElementById('start-btn');
+      const scene = document.querySelector('a-scene');
+      
+      const taskNameInput = document.getElementById('task-name');
+      const taskCatInput = document.getElementById('task-category');
+      const newCatInput = document.getElementById('new-category-input');
+      const taskDueInput = document.getElementById('task-due');
+      const taskTimeInput = document.getElementById('task-time');
+      const taskRemindInput = document.getElementById('task-reminder');
+
+      function saveToLocalStorage() { 
+          localStorage.setItem('ankorTasksData', JSON.stringify(myTasks)); 
+          localStorage.setItem('ankorHat', currentHat);
+          
+          // Save Economy
+          localStorage.setItem('ankorPoints', ankorPoints);
+          localStorage.setItem('ankorUnlocked', JSON.stringify(unlockedItems));
+      }
+      
+      function loadFromLocalStorage() {
+          const stored = localStorage.getItem('ankorTasksData');
+          if (stored) { myTasks = JSON.parse(stored); }
+          const storedHat = localStorage.getItem('ankorHat');
+          if (storedHat) { currentHat = storedHat; }
+
+          const checkin = localStorage.getItem('ankorCheckinTime');
+          if(checkin) document.getElementById('checkin-time-input').value = checkin;
+
+          // Load Economy
+          const pts = localStorage.getItem('ankorPoints');
+          if (pts) ankorPoints = parseInt(pts);
+
+          const unlocked = localStorage.getItem('ankorUnlocked');
+          if (unlocked) unlockedItems = JSON.parse(unlocked);
+      }
+      loadFromLocalStorage();
+
+      function requestNotificationPermission() {
+          if (!("Notification" in window)) {
+              console.log("This browser does not support desktop notifications.");
+          } else if (Notification.permission !== "denied" && Notification.permission !== "granted") {
+              Notification.requestPermission();
+          }
+      }
+
+      function sendSystemNotification(title, body) {
+          if ("Notification" in window && Notification.permission === "granted") {
+              new Notification(title, { body: body });
+          }
+      }
+
+      startBtn.addEventListener('click', () => {
+        requestNotificationPermission();
+
+        startBtn.style.display = 'none'; 
+        const mindAR = scene.systems['mindar-image-system'];
+        mindAR.start()
+          .then(() => { 
+             cameraActive = true; 
+             update3DView();
+             setTimeout(checkActiveReminders, 1500);
+          })
+          .catch(err => { 
+             console.error(err); alert("Camera Error: " + err); 
+             startBtn.style.display = 'block'; 
+          });
+      });
+
+      function openMakeCard() {
+         closeModal('lost-tracking-modal');
+         openModal('make-card-panel');
+      }
+
+      const targets = document.querySelectorAll('.ar-target');
+      targets.forEach(target => {
+         target.addEventListener("targetFound", () => { 
+            if (visibleCount === 0) {
+                hideAllARModels();
+                showIdleModel();
+            }
+            visibleCount++; 
+            document.getElementById('breathe-btn').style.display = 'block';
+            document.getElementById('customize-btn').style.display = 'block';
+         });
+         target.addEventListener("targetLost", () => {
+            visibleCount--;
+            if(visibleCount <= 0) {
+               visibleCount = 0;
+               document.getElementById('breathe-btn').style.display = 'none';
+               document.getElementById('customize-btn').style.display = 'none';
+            }
+         });
+      });
+
+      function hideAllARModels() {
+          document.querySelectorAll('.model').forEach(el => {
+              el.setAttribute('visible', 'false');
+              el.setAttribute('scale', '0 0 0');
+              if(el.object3D) el.object3D.visible = false;
+          });
+          document.querySelectorAll('.task-bubble').forEach(el => el.setAttribute('visible', 'false'));
+          document.querySelectorAll('.model-wrapper').forEach(el => el.object3D.rotation.set(0, 0, 0));
+      }
+
+      function showARModel(selector) {
+          document.querySelectorAll(selector).forEach(el => {
+              el.setAttribute('visible', 'true');
+              el.setAttribute('scale', '0.8 0.8 0.8');
+              if(el.object3D) el.object3D.visible = true;
+          });
+      }
+
+      function showIdleModel() {
+          showARModel('.model-idle-' + currentHat);
+      }
+
+      const hitBoxes = document.querySelectorAll('.hit-box');
+      hitBoxes.forEach(box => {
+        box.addEventListener("click", event => {
+          event.stopPropagation();
+          const wrapper = box.parentElement; 
+          const bubble = wrapper.querySelector('.task-bubble');
+          const activeIdle = wrapper.querySelector('.model-idle-' + currentHat);
+          
+          const isBubbleVis = bubble.getAttribute('visible');
+          if (isBubbleVis === true || isBubbleVis === 'true') {
+              bubble.setAttribute('visible', 'false');
+              wrapper.object3D.rotation.set(0, 0, 0); 
+              if (activeIdle) activeIdle.setAttribute('scale', '0.8 0.8 0.8');
+          } else {
+              bubble.setAttribute('visible', 'true');
+              const cameraPos = new THREE.Vector3();
+              scene.camera.el.object3D.getWorldPosition(cameraPos);
+              wrapper.object3D.lookAt(cameraPos.x, wrapper.object3D.position.y, cameraPos.z);
+              if (activeIdle) activeIdle.setAttribute('scale', '0.55 0.55 0.55');
+          }
+        });
+      });
+
+      const doneBtns = document.querySelectorAll('.done-btn');
+      doneBtns.forEach(btn => {
+        btn.addEventListener("click", event => {
+          event.stopPropagation();
+          if (myTasks.length > 0) { finishTask(0); }
+        });
+      });
+
+      function openModal(id) { 
+          document.getElementById(id).style.display = 'block'; 
+          isModalOpen = true; 
+      }
+      
+      function closeModal(id) { 
+          document.getElementById(id).style.display = 'none'; 
+          isModalOpen = false;
+      }
+
+      function openTaskList() {
+          render2DList();
+          openModal('list-panel');
+      }
+
+      function checkNewCategory(selectObj) {
+        document.getElementById('new-category-input').style.display = (selectObj.value === 'new') ? 'block' : 'none';
+      }
+
+      function selectUrgency(level) {
+        selectedUrgency = level;
+        document.getElementById('opt-chill').className = 'urgency-option';
+        document.getElementById('opt-warn').className = 'urgency-option';
+        document.getElementById('opt-hot').className = 'urgency-option';
+        document.getElementById('opt-' + level).classList.add('selected-' + level);
+      }
+      selectUrgency('chill');
+
+      // --- NEW DYNAMIC WARDROBE RENDERER ---
+      function renderWardrobe() {
+          const grid = document.getElementById('wardrobe-grid');
+          grid.innerHTML = '';
+          document.getElementById('points-display').innerText = `🪙 ${ankorPoints} Points`;
+
+          const items = [
+              { id: 'default', name: 'No Hat', icon: '🧍', path: './attachments/Animations-Fixed/Idle-Sways/Default Idle Stand.glb' },
+              { id: 'pirate', name: 'Pirate Hat', icon: '🏴‍☠️', path: './attachments/Customizations/pirate.glb' },
+              { id: 'straw', name: 'Straw Hat', icon: '👒', path: './attachments/Customizations/Straw_Hat_on_Buddy.glb' },
+              { id: 'cowboy', name: 'Cowboy Hat', icon: '🤠', path: './attachments/Customizations/Cowboy Hat on Buddy.glb' },
+              { id: 'football', name: 'Football', icon: '🏈', path: './attachments/Customizations/Football_Helmet_on_Buddy.glb' },
+              { id: 'halo', name: 'Halo', icon: '😇', path: './attachments/Customizations/Halo_on_Buddy.glb' },
+              { id: 'viking', name: 'Viking', icon: '🪓', path: './attachments/Customizations/Viking_Helmet_on_Buddy.glb' },
+              { id: 'wizard', name: 'Wizard', icon: '🧙‍♂️', path: './attachments/Customizations/Wizard_Hat_on_Buddy.glb' }
+          ];
+
+          items.forEach(item => {
+              const isUnlocked = unlockedItems.includes(item.id);
+              const cost = itemCosts[item.id];
+              const div = document.createElement('div');
+              div.className = 'cust-item';
+              
+              if (isUnlocked) {
+                  div.onclick = () => previewHat(item.id, item.name, item.path);
+                  div.innerHTML = `<div style="font-size: 35px;">${item.icon}</div><div style="font-size: 13px; font-weight: bold; color: #555; margin-top:5px;">${item.name}</div>`;
+              } else {
+                  div.onclick = () => promptUnlock(item.id, item.name, cost);
+                  div.style.background = "rgba(200, 200, 200, 0.4)";
+                  div.innerHTML = `<div style="font-size: 35px; filter: grayscale(100%); opacity: 0.5;">${item.icon}</div><div style="font-size: 13px; font-weight: bold; color: #888; margin-top:5px;">🔒 ${cost} Pts</div>`;
+              }
+              grid.appendChild(div);
+          });
+      }
+
+      let pendingHat = '';
+      let pendingUnlockId = '';
+      let pendingUnlockCost = 0;
+
+      function previewHat(hatId, hatName, glbPath) {
+          pendingHat = hatId;
+          closeModal('customize-panel');
+          document.getElementById('confirm-hat-title').innerText = "Equip " + hatName + "?";
+          document.getElementById('hat-preview-viewer').src = glbPath;
+          openModal('confirm-hat-modal');
+      }
+
+      function promptUnlock(id, name, cost) {
+          pendingUnlockId = id;
+          pendingUnlockCost = cost;
+          document.getElementById('unlock-error').style.display = 'none';
+          document.getElementById('unlock-desc').innerHTML = `Unlock <b>${name}</b> for <b>${cost} Pts</b>?<br><br>Current Balance: 🪙 ${ankorPoints}`;
+          closeModal('customize-panel');
+          openModal('unlock-modal');
+      }
+
+      function confirmUnlock() {
+          if (ankorPoints >= pendingUnlockCost) {
+              ankorPoints -= pendingUnlockCost;
+              unlockedItems.push(pendingUnlockId);
+              saveToLocalStorage();
+              closeModal('unlock-modal');
+              renderWardrobe();
+              openModal('customize-panel');
+          } else {
+              document.getElementById('unlock-error').style.display = 'block';
+          }
+      }
+
+      function confirmHat() {
+          currentHat = pendingHat;
+          saveToLocalStorage(); 
+          closeModal('confirm-hat-modal');
+          hideAllARModels();
+          showIdleModel();
+      }
+
+      function saveTask() {
+        if(myTasks.length >= 10) {
+            alert("⚠️ Pockets Full! \n\nYou can only have 10 active tasks.");
+            return;
+        }
+
+        const name = taskNameInput.value;
+        if(!name) return;
+
+        let urgencyIcon = "🌿";
+        if(selectedUrgency === 'warn') urgencyIcon = "⚠️";
+        if(selectedUrgency === 'hot') urgencyIcon = "🔥";
+
+        let catValue = taskCatInput.value;
+        if(catValue === 'new') catValue = newCatInput.value || "General";
+        let catIcon = "⚪";
+        if(catValue === 'Math') catIcon = "🔵";
+        if(catValue === 'Science') catIcon = "🟢";
+        if(catValue === 'History') catIcon = "🔴";
+        if(catValue === 'Art') catIcon = "🟡";
+
+        let timeDisplay = "";
+        let rawTimeSave = "";
+        if(taskDueInput.value) {
+            const d = new Date(taskDueInput.value + 'T00:00');
+            timeDisplay = `(Due: ${d.getMonth()+1}/${d.getDate()}`;
+            if(taskTimeInput.value) {
+                rawTimeSave = taskTimeInput.value;
+                let [hours, mins] = taskTimeInput.value.split(':');
+                let ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; 
+                timeDisplay += ` @ ${hours}:${mins} ${ampm}`;
+            }
+            timeDisplay += ")";
+        }
+
+        const newTask = {
+            id: Date.now(),
+            name: name,
+            category: catValue,
+            catIcon: catIcon,
+            urgency: urgencyIcon,
+            urgencyLevel: selectedUrgency,
+            reminder: taskRemindInput.value, 
+            timeStr: timeDisplay,
+            rawDate: taskDueInput.value,
+            rawTime: rawTimeSave,
+            overdueNotified: false,
+            arString: `${urgencyIcon} ${catIcon} ${name}\n   ${timeDisplay}`
+        };
+        
+        myTasks.push(newTask);
+        saveToLocalStorage();
+        update3DView();
+        
+        if(document.getElementById('list-panel').style.display === 'block') { render2DList(); }
+
+        taskNameInput.value = "";
+        taskDueInput.value = "";
+        taskTimeInput.value = "";
+        taskRemindInput.value = "none";
+        
+        closeModal('input-panel');
+
+        if (selectedUrgency === 'hot') {
+            setTimeout(() => openModal('urgent-prompt-modal'), 200);
+        } else {
+            setTimeout(checkActiveReminders, 500);
+        }
+      }
+
+      function finishTask(index) {
+        const task = myTasks[index];
+        let pool = msgChill; 
+        
+        // ECONOMY: Give points based on urgency
+        let earnedPoints = 10; 
+        if(task.urgencyLevel === 'warn') { pool = msgWarn; earnedPoints = 20; }
+        if(task.urgencyLevel === 'hot') { pool = msgHot; earnedPoints = 30; }
+
+        ankorPoints += earnedPoints;
+
+        const randMsg = pool[Math.floor(Math.random() * pool.length)];
+        
+        // Show points earned in celebration message
+        document.getElementById('celeb-msg').innerText = randMsg + `\n\n+${earnedPoints} Ankor Points!`;
+
+        myTasks.splice(index, 1);
+        saveToLocalStorage();
+
+        update3DView();
+        render2DList(); 
+        
+        openModal('celebration-modal');
+        hideAllARModels();
+
+        if (task.urgencyLevel === 'hot') {
+            showARModel(`.model-hot`);
+        } else if (task.urgencyLevel === 'warn') {
+            showARModel(`.model-warn`);
+        } else {
+            showARModel(`.model-chill`);
+        }
+      }
+
+      function deleteTask(index) {
+          myTasks.splice(index, 1);
+          saveToLocalStorage();
+          update3DView();
+          render2DList();
+      }
+
+      function closeCelebration() {
+        closeModal('celebration-modal');
+        hideAllARModels();
+        showIdleModel(); 
+      }
+
+      function update3DView() {
+         const hasTasks = myTasks.length > 0;
+         const textContent = myTasks.map(t => t.arString).join("\n\n");
+         
+         document.querySelectorAll('.bubble-text').forEach(text => {
+            text.setAttribute('value', hasTasks ? textContent : "No tasks yet! \n You are all caught up.");
+         });
+
+         document.querySelectorAll('.finish-group').forEach(group => {
+             group.setAttribute('visible', hasTasks ? 'true' : 'false');
+             const btn = group.querySelector('.done-btn');
+             if(hasTasks) btn.classList.add('clickable');
+             else btn.classList.remove('clickable');
+         });
+      }
+
+      function render2DList() {
+        const container = document.getElementById('task-list-container');
+        container.innerHTML = ""; 
+
+        if(myTasks.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#555; background:rgba(255,255,255,0.8); padding:20px; border-radius:20px; margin-top:50px; font-size:18px;">No tasks yet! Go add some.</p>';
+            return;
+        }
+
+        myTasks.forEach((task, index) => {
+            const div = document.createElement('div');
+            div.className = 'task-item';
+            div.innerHTML = `
+                <div class="task-info">
+                    <div class="task-title">${task.urgency} ${task.catIcon} ${task.name}</div>
+                    <div class="task-meta">${task.category} • ${task.timeStr}</div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button class="btn-complete" onclick="finishTask(${index})">Done ✔</button>
+                    <button class="btn-delete" onclick="deleteTask(${index})">Delete ✖</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+      }
+
+      function checkActiveReminders() {
+          const today = new Date();
+          today.setHours(0,0,0,0);
+          let remindersToDisplay = [];
+          
+          myTasks.forEach(task => {
+              if(!task.rawDate || !task.reminder || task.reminder === 'none') return;
+              const dueDate = new Date(task.rawDate + 'T00:00');
+              
+              if(task.reminder === 'morning' && dueDate.getTime() === today.getTime()) {
+                  remindersToDisplay.push(`☀️ Due Today: ${task.name}`);
+                  sendSystemNotification("Task Due Today", `Don't forget: ${task.name}`);
+              } else if(task.reminder === 'daily' && dueDate >= today) {
+                  remindersToDisplay.push(`📅 Daily: Don't forget ${task.name}!`);
+                  sendSystemNotification("Daily Reminder", `Upcoming: ${task.name}`);
+              }
+          });
+
+          if(remindersToDisplay.length > 0) {
+              const listHTML = remindersToDisplay.map(r => `<p style="margin:8px 0; border-bottom: 1px dashed #ccc; padding-bottom: 8px;">${r}</p>`).join('');
+              document.getElementById('reminder-list').innerHTML = listHTML;
+              openModal('reminder-modal');
+          }
+      }
+
+      let selectedBreathType = 'box';
+      let breathingActive = false;
+      let breathTimer;
+
+      function openBreatheMenu() {
+          document.getElementById('breathe-panel').style.display = 'block'; 
+          isModalOpen = true; 
+      }
+
+      function selectBreathingRoutine(type, element) {
+          selectedBreathType = type;
+          document.querySelectorAll('.breathe-item').forEach(el => el.classList.remove('selected'));
+          element.classList.add('selected');
+      }
+
+      async function startBreathing() {
+          breathingActive = true;
+          
+          document.getElementById('breathe-panel').style.display = 'none';
+          document.getElementById('breathe-active-banner').style.display = 'block';
+          
+          hideAllARModels();
+          if (selectedBreathType === 'box') {
+              showARModel('.model-box');
+          } else if (selectedBreathType === 'relax') {
+              showARModel('.model-relax');
+          } else {
+              showARModel('.model-idle-default'); 
+          }
+          
+          const circle = document.getElementById('breathe-circle');
+          const instr = document.getElementById('breathe-instruction');
+          const title = document.getElementById('active-breathe-title');
+          const countDisplay = document.getElementById('breathe-cycle-count');
+
+          let routine = [];
+          if(selectedBreathType === 'box') {
+              title.innerText = "Box Breathing";
+              routine = [
+                  { t: "Breathe In", ms: 4000, s: 1.5 },
+                  { t: "Hold Breath", ms: 4000, s: 1.5 },
+                  { t: "Breathe Out", ms: 4000, s: 1 },
+                  { t: "Hold Breath", ms: 4000, s: 1 }
+              ];
+          } else if(selectedBreathType === 'relax') {
+              title.innerText = "Relaxing Breath";
+              routine = [
+                  { t: "Breathe In", ms: 4000, s: 1.5 },
+                  { t: "Hold Breath", ms: 7000, s: 1.5 },
+                  { t: "Breathe Out", ms: 8000, s: 1 }
+              ];
+          } else if(selectedBreathType === 'mindful') {
+              title.innerText = "Mindful Minute";
+              routine = [
+                  { t: "Breathe In", ms: 5000, s: 1.5 },
+                  { t: "Breathe Out", ms: 5000, s: 1 }
+              ];
+          }
+
+          circle.style.transitionDuration = '0ms';
+          circle.style.transform = 'scale(1)';
+          instr.innerText = "Get Ready...";
+          countDisplay.innerText = "Starting...";
+          
+          await new Promise(r => breathTimer = setTimeout(r, 2000));
+          if(!breathingActive) return; 
+
+          async function playRoutine() {
+              for (let cycle = 1; cycle <= 4; cycle++) {
+                  if(!breathingActive) break;
+                  countDisplay.innerText = `Cycle ${cycle} of 4`;
+
+                  for(let step of routine) {
+                      if(!breathingActive) break;
+                      circle.style.transitionDuration = `${step.ms}ms`;
+                      circle.style.transform = `scale(${step.s})`;
+                      
+                      let seconds = step.ms / 1000;
+                      for(let i = seconds; i > 0; i--) {
+                          if(!breathingActive) break;
+                          instr.innerHTML = `${step.t} <br><span style="font-size:24px; color:var(--nook-pink-dark);">${i}</span>`;
+                          await new Promise(r => breathTimer = setTimeout(r, 1000));
+                      }
+                  }
+              }
+              if(breathingActive) {
+                  instr.innerHTML = "Done!";
+                  await new Promise(r => breathTimer = setTimeout(r, 1500));
+                  stopBreathing();
+              }
+          }
+          playRoutine();
+      }
+
+      function stopBreathing() {
+          breathingActive = false;
+          clearTimeout(breathTimer);
+          if (document.getElementById('breathe-active-banner').style.display !== 'none') {
+              hideAllARModels();
+              showIdleModel();
+          }
+          document.getElementById('breathe-active-banner').style.display = 'none';
+          isModalOpen = false;
+      }
+
+      function saveDailyCheckinTime() {
+          const t = document.getElementById('checkin-time-input').value;
+          if (t) {
+              localStorage.setItem('ankorCheckinTime', t);
+              localStorage.removeItem('ankorLastCheckinDate'); 
+              const msg = document.getElementById('checkin-save-msg');
+              msg.style.display = 'block';
+              setTimeout(() => { msg.style.display = 'none'; }, 2000);
+          }
+      }
+
+      function handleCheckin(emotion) {
+          document.getElementById('checkin-step-1').style.display = 'none';
+          if (emotion === 'good') {
+              closeModal('daily-checkin-modal');
+          } else {
+              document.getElementById('checkin-step-2').style.display = 'block';
+          }
+      }
+
+      setInterval(() => {
+          if (isModalOpen) return;
+
+          const now = new Date();
+
+          for (let i = 0; i < myTasks.length; i++) {
+              let t = myTasks[i];
+              if (t.rawDate && t.rawTime && !t.overdueNotified) {
+                  const dueDateTime = new Date(`${t.rawDate}T${t.rawTime}`);
+                  if (now > dueDateTime) {
+                      t.overdueNotified = true;
+                      saveToLocalStorage(); 
+                      
+                      document.getElementById('overdue-task-name').innerText = t.name;
+                      openModal('encouragement-modal');
+                      
+                      sendSystemNotification("Breathe 🍃", `The time for ${t.name} passed. It'll be okay!`);
+                      return; 
+                  }
+              }
+          }
+
+          let savedCheckinTime = localStorage.getItem('ankorCheckinTime');
+          let lastCheckin = localStorage.getItem('ankorLastCheckinDate');
+          let todayStr = now.toDateString();
+
+          if (savedCheckinTime && lastCheckin !== todayStr) {
+              let [checkHours, checkMins] = savedCheckinTime.split(':');
+              let checkTimeObj = new Date();
+              checkTimeObj.setHours(checkHours, checkMins, 0, 0);
+
+              if (now >= checkTimeObj) {
+                  localStorage.setItem('ankorLastCheckinDate', todayStr); 
+                  
+                  document.getElementById('checkin-step-1').style.display = 'flex';
+                  document.getElementById('checkin-step-2').style.display = 'none';
+                  openModal('daily-checkin-modal');
+                  
+                  sendSystemNotification("Daily Check-In 🌸", "How was your day? Open Ankor Tasks to log your feelings.");
+              }
+          }
+
+      }, 5000);
+
+    </script>
+  </body>
+</html>
