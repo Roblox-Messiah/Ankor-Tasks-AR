@@ -461,10 +461,10 @@
       device-orientation-permission-ui="enabled: false">
       
       <a-assets timeout="30000">
-        <a-asset-item id="idleModel" src="./attachments/Animations-Fixed/Idle-Sways/Default_Idle_Stand.glb"></a-asset-item>
+        <a-asset-item id="idleModel" src="./attachments/Animations-Fixed/Idle-Sways/Default-Idle-Stand.glb"></a-asset-item>
         <a-asset-item id="wizardModel" src="./attachments/Customizations/Wizard_Hat_on_Buddy.glb"></a-asset-item>
         <a-asset-item id="pirateModel" src="./attachments/Customizations/Pirate_Hat_on_Buddy.glb"></a-asset-item>
-        <a-asset-item id="cowboyModel" src="./attachments/Customizations/Cowboy Hat on Buddy.glb"></a-asset-item>
+        <a-asset-item id="cowboyModel" src="./attachments/Customizations/Cowboy_Hat_on_Buddy.glb"></a-asset-item>
         <a-asset-item id="vikingModel" src="./attachments/Customizations/Viking_Helmet_on_Buddy.glb"></a-asset-item>
         <a-asset-item id="strawModel" src="./attachments/Customizations/Straw_Hat_on_Buddy.glb"></a-asset-item>
         <a-asset-item id="footballModel" src="./attachments/Customizations/Football_Helmet_on_Buddy.glb"></a-asset-item>
@@ -592,7 +592,7 @@
       let selectedUrgency = 'chill'; 
       let currentHat = 'default'; 
 
-      // NEW: Gamification Variables
+      // Gamification Variables
       let ankorPoints = 0;
       let unlockedItems = ['default'];
       
@@ -605,6 +605,25 @@
           'halo': 150,
           'viking': 150,
           'wizard': 200
+      };
+
+      // FIXED: Paths are now exactly matched to the filenames in your screenshots.
+      const modelPaths = {
+          'default': './attachments/Animations-Fixed/Idle-Sways/Default-Idle-Stand.glb',
+          'wizard': './attachments/Customizations/Wizard_Hat_on_Buddy.glb',
+          'pirate': './attachments/Customizations/Pirate_Hat_on_Buddy.glb',
+          'cowboy': './attachments/Customizations/Cowboy_Hat_on_Buddy.glb',
+          'viking': './attachments/Customizations/Viking_Helmet_on_Buddy.glb',
+          'straw': './attachments/Customizations/Straw_Hat_on_Buddy.glb',
+          'football': './attachments/Customizations/Football_Helmet_on_Buddy.glb',
+          'halo': './attachments/Customizations/Halo_on_Buddy.glb',
+          
+          'box': './attachments/Animations-Fixed/Breathing/Default_Box_Breathe_4-4-4-4.glb',
+          'relax': './attachments/Animations-Fixed/Breathing/Default_Relax_Breathe_4-7-8.glb',
+          
+          'chill': './attachments/Animations-Fixed/Dances/Default_Dance_6.glb',
+          'warn': './attachments/Animations-Fixed/Dances/Default_Gangnam_Style.glb',
+          'hot': './attachments/Animations-Fixed/Dances/Default_Twerk_Dance.glb'
       };
       
       const msgChill = [
@@ -815,7 +834,7 @@
           document.getElementById('points-display').innerText = `🪙 ${ankorPoints} Points`;
 
           const items = [
-              { id: 'default', name: 'No Hat', icon: '🧍', path: './attachments/Animations-Fixed/Idle-Sways/Default_Idle_Stand.glb' },
+              { id: 'default', name: 'No Hat', icon: '🧍', path: './attachments/Animations-Fixed/Idle-Sways/Default-Idle-Stand.glb' },
               { id: 'pirate', name: 'Pirate Hat', icon: '🏴‍☠️', path: './attachments/Customizations/Pirate_Hat_on_Buddy.glb' },
               { id: 'straw', name: 'Straw Hat', icon: '👒', path: './attachments/Customizations/Straw_Hat_on_Buddy.glb' },
               { id: 'cowboy', name: 'Cowboy Hat', icon: '🤠', path: './attachments/Customizations/Cowboy_Hat_on_Buddy.glb' },
